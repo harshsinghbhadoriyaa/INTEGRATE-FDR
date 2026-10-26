@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FDR Sentinel — Evidence Before Conclusions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.408.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js" async></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: {
+    fontFamily: { sans: ['Inter','system-ui'], mono: ['JetBrains Mono','monospace'] },
+    colors: { brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',950:'#1e1b4b' } },
+    animation: { 'fade-in':'fadeIn .3s ease-out','scale-in':'scaleIn .2s ease-out' },
+    keyframes: {
+      fadeIn:{from:{opacity:0,transform:'translateY(6px)'},to:{opacity:1,transform:'none'}},
+      scaleIn:{from:{opacity:0,transform:'scale(.96)'},to:{opacity:1,transform:'scale(1)'}},
+    },
+  }},
+};
+</script>
+<style>
+  html{-webkit-font-smoothing:antialiased}
+  body{font-feature-settings:'cv02','cv03','cv04','cv11'}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+  .dark ::-webkit-scrollbar-thumb{background:#475569}
+  ::selection{background:#c7d2fe;color:#312e81}
+  *:focus-visible{outline:2px solid #6366f1;outline-offset:2px;border-radius:6px}
+  input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+  .bg-grid{background-image:linear-gradient(to right,rgba(15,23,42,.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(15,23,42,.04) 1px,transparent 1px);background-size:32px 32px}
+  .dark .bg-grid{background-image:linear-gradient(to right,rgba(148,163,184,.06) 1px,transparent 1px),linear-gradient(to bottom,rgba(148,163,184,.06) 1px,transparent 1px)}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin .9s linear infinite}
+  @keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+  .pulse-dot{animation:pulseDot 1.8s ease-in-out infinite}
+  .hero-glow{background-image:radial-gradient(at 20% 30%,rgba(99,102,241,.35) 0,transparent 50%),radial-gradient(at 80% 10%,rgba(79,70,229,.25) 0,transparent 50%),radial-gradient(at 60% 90%,rgba(16,185,129,.15) 0,transparent 60%)}
+  @keyframes revealNumber{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .reveal-num{animation:revealNumber .6s cubic-bezier(.16,1,.3,1) both}
+  @keyframes growBar{from{width:0 !important}}
+  .bar-animate{animation:growBar 1.2s cubic-bezier(.16,1,.3,1) both}
+  .btn-press{transition:transform .12s,box-shadow .15s}
+  .btn-press:hover{transform:translateY(-1px)}
+  .btn-press:active{transform:translateY(0) scale(.98)}
+  .card-lift{transition:transform .18s,box-shadow .2s}
+  .card-lift:hover{transform:translateY(-2px);box-shadow:0 12px 24px -8px rgba(15,23,42,.12)}
+  .nav-item-active::before{content:'';position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:#6366f1;border-radius:0 3px 3px 0}
+  .bg-mesh{background-image:radial-gradient(at 40% 20%,rgba(99,102,241,.15) 0,transparent 50%),radial-gradient(at 80% 0%,rgba(79,70,229,.12) 0,transparent 50%),radial-gradient(at 0% 50%,rgba(59,130,246,.1) 0,transparent 50%),radial-gradient(at 80% 100%,rgba(16,185,129,.1) 0,transparent 50%)}
+
+  .mobile-nav{display:none}
+  @media (max-width:1023px){.mobile-nav{display:flex}}
+  body{padding-bottom:env(safe-area-inset-bottom)}
+
+  @media print {
+    .no-print, aside, header, .mobile-nav { display:none !important; }
+    main { padding:0 !important; max-width:100% !important; }
+    body { background:white !important; }
+    .print-header { display:block !important; }
+    .bg-white, .dark\:bg-slate-900 { background:white !important; }
+    * { color:black !important; box-shadow:none !important; }
+  }
+  .print-header { display:none; text-align:center; padding:12px 0; border-bottom:2px solid #000; margin-bottom:16px; }
+  .print-header h1 { font-size:18px; font-weight:bold; margin:0; }
+  .print-header p { font-size:10px; margin:2px 0; color:#555; }
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen antialiased">
+
+<div id="app"></div>
+<div id="toastRoot" class="fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-[60] flex flex-col gap-2 pointer-events-none"></div>
+<div id="modalRoot"></div>
+<div id="paletteRoot"></div>
+
+<script>
+'use strict';
+
+/* ═══ CONSTANTS ═══ */
+const POLICY_SOURCE = {
+  handbook: 'AICTE Approval Process Handbook',
+  edition: '2024-25',
+  clause: 'Chapter IV — Security Deposit & FDR Requirements',
+  url: 'https://www.aicte-india.org/approvals',
+  excerpts: [
+    'Institutions shall maintain security deposits / FDRs as per AICTE requirements during the approval cycle.',
+    'Validity and maturity of instruments shall be monitored to ensure continuous compliance.',
+    'Release of deposits is subject to no-dues clearance, auditor sign-off, and authorized approval.',
+  ],
+  disclaimer: 'Clause references are illustrative. Actual enforcement requires validation with AICTE Regulation Bureau.'
+};
+
+const IMPACT_MODEL = {
+  institutionCount: 12000,
+  avgInstrumentsPerInst: 2.5,
+  currentMinutesPerInstrumentPerMonth: 45,
+  newMinutesPerInstrumentPerMonth: 8,
+  dataSources: [
+    { label: 'Institution count', value: '12,000+', source: 'AICTE Approval Process Handbook 2024-25 (public)' },
+    { label: 'Avg instruments / institution', value: '2.5', source: 'Illustrative estimate — pilot validation pending' },
+    { label: 'Manual tracking time', value: '45 min/month', source: 'Internal benchmark on synthetic tasks' },
+  ],
+  caveat: 'All impact figures are modelled estimates. Real institution pilot required for validation.'
+};
+
+const QA_DEFENCE = [
+  { q: "How is this different from a Google Sheet?", a: "Three things: (1) SHA-256 hash chain — edit one cell, chain breaks visibly. (2) Three-state verification — Sheet can't distinguish submitted vs OCR vs bank-verified. (3) Server-side workflow enforcement — Sheets cannot block a release without clearances." },
+  { q: "You don't have real bank integration — isn't this fake?", a: "Correct — labelled SIMULATED everywhere. What we've built is the EVIDENCE FRAMEWORK that works even without bank API. When real integration arrives, it's one more verification state. AICTE has no framework at all today." },
+  { q: "What if OCR is wrong?", a: "OCR will be wrong sometimes. That's why we DON'T treat OCR as truth. It's state 2 — with confidence bars and source regions. State 3 requires independent verification. One OCR miss ≠ fraud declaration." },
+  { q: "Will this scale to 12,000 institutions?", a: "Yes. Prototype uses browser storage; production spec is PostgreSQL + S3 object storage. 30,000 instruments × 4 docs = 120,000 files, ~500GB. Trivial for S3. Horizontal scaling handles concurrency." },
+  { q: "What about DPDP Act / privacy?", a: "Bank details are personally identifiable — we enforce role-based access, audit every read, encrypt at rest. Explicit DPDP consent flow documented in roadmap but not in prototype — that's honest." },
+  { q: "You're not AICTE — how does adoption happen?", a: "Open specification + reference implementation. Government adoption happens when working spec exists. NIC or AICTE's in-house team can take code, spec, and evaluation methodology as starting point." },
+  { q: "What if the FDR is fraudulent?", a: "We don't declare fraud. We flag for enhanced scrutiny with evidence — metadata anomalies, EXIF inconsistencies, duplicate patterns. A human officer makes every consequential decision." },
+  { q: "What if institution wants to delete a wrong FDR?", a: "FDRs aren't deletable — financial instruments. We have withdraw-and-return workflow: institution marks withdrawn, scrutiny reviews, status becomes 'withdrawn' with full audit trail. History preserved." },
+  { q: "What about interest on FDR?", a: "Interest settlement is handled by the bank at release. Out of scope for our regulatory tracking layer. We track the instrument lifecycle, not financial yield." },
+  { q: "How do you measure 'time savings'?", a: "Honest methodology: same 10 tasks manually (stopwatch, 3 runs) and with prototype. Reported with sample size and limitations. We do NOT claim production numbers." },
+];
+
+const BEFORE_AFTER = {
+  before: [
+    { icon:'file-stack', title:'Scattered records', desc:'Multiple spreadsheets, email threads, and physical registers' },
+    { icon:'clock', title:'Delayed detection', desc:'Mismatches identified in weeks. Overdue FDRs noticed after escalation.' },
+    { icon:'users', title:'Manual correspondence', desc:'Officers chase institutions via email, phone, follow-up letters' },
+    { icon:'shield-x', title:'No tamper protection', desc:'Any admin with edit access modifies a cell — no audit trail' },
+    { icon:'trending-down', title:'No financial exposure view', desc:'Leadership cannot answer: "How much is at risk this quarter?"' },
+  ],
+  after: [
+    { icon:'database', title:'Centralized repository', desc:'Single source of truth for all instruments and lifecycle events' },
+    { icon:'zap', title:'Real-time flagging', desc:'Mismatches surfaced in minutes with evidence and confidence scores' },
+    { icon:'bell', title:'Automated escalation', desc:'Configurable 30/15/7 day reminders before maturity' },
+    { icon:'shield-check', title:'Hash-chained audit', desc:'SHA-256 chain — tamper detected instantly, forensic reconstruction' },
+    { icon:'trending-up', title:'Live exposure dashboard', desc:'Financial risk tiers: next 30/60/90 days in ₹ or Cr' },
+  ]
+};
+
+/* ═══ UTILITIES ═══ */
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2,9);
+const today = () => new Date().toISOString().slice(0,10);
+const addDays = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtDateShort = d => d ? new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+const fmtMoney = n => '₹' + Number(n||0).toLocaleString('en-IN');
+const fmtCompact = n => { const v=Number(n||0); if(v>=1e7) return '₹'+(v/1e7).toFixed(2)+' Cr'; if(v>=1e5) return '₹'+(v/1e5).toFixed(2)+' L'; if(v>=1e3) return '₹'+(v/1e3).toFixed(1)+' K'; return '₹'+v; };
+const fmtTime = ts => ts ? new Date(ts).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+const timeAgo = ts => { if(!ts) return '—'; const s=Math.floor((Date.now()-new Date(ts))/1000); if(s<60) return 'just now'; if(s<3600) return Math.floor(s/60)+'m ago'; if(s<86400) return Math.floor(s/3600)+'h ago'; if(s<604800) return Math.floor(s/86400)+'d ago'; return fmtDate(ts); };
+const daysFrom = iso => Math.round((new Date(iso).setHours(0,0,0,0)-new Date().setHours(0,0,0,0))/864e5);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const initials = name => (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+async function sha256(str) {
+  try { const buf=new TextEncoder().encode(str); const h=await crypto.subtle.digest('SHA-256',buf); return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  catch(e) { let h=0; for(let i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;} return 'fb-'+Math.abs(h).toString(16).padStart(16,'0'); }
+}
+function refreshIcons(){ if(window.lucide){ try{lucide.createIcons();}catch(e){} } }
+function animateNumber(el, target, opts={}) {
+  if(!el) return;
+  const { prefix='', suffix='', duration=800, format='money' } = opts;
+  const t0 = performance.now();
+  function frame(t) {
+    const p = Math.min((t-t0)/duration, 1);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = target * eased;
+    if (format === 'money') el.textContent = prefix + Number(Math.floor(val)).toLocaleString('en-IN') + suffix;
+    else if (format === 'compact') el.textContent = prefix + fmtCompact(Math.floor(val)) + suffix;
+    else el.textContent = prefix + Math.floor(val) + suffix;
+    if (p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ═══ CHARTS ═══ */
+function donutChart({data,size=140,thickness=14}) {
+  const total=data.reduce((s,d)=>s+d.value,0)||1;
+  const r=(size-thickness)/2,cx=size/2,cy=size/2,circ=2*Math.PI*r;
+  let offset=0;
+  const segs=data.map(d=>{ if(!d.value) return ''; const len=(d.value/total)*circ; const s=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}" stroke-width="${thickness}" stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`; offset+=len; return s; }).join('');
+  const pct=Math.round((data[0]?.value||0)/total*100);
+  return `<div class="relative inline-block"><svg width="${size}" height="${size}">${segs}</svg><div class="absolute inset-0 flex flex-col items-center justify-center"><div class="text-2xl font-bold font-mono">${pct}%</div><div class="text-[10px] uppercase tracking-wider text-slate-500">${esc(data[0]?.label||'')}</div></div></div>`;
+}
+function sparkline(values,{w=88,h=28,color='#6366f1'}={}) {
+  if(!values.length) values=[0,0];
+  const min=Math.min(...values),max=Math.max(...values),range=(max-min)||1;
+  const pts=values.map((v,i)=>[(i/(values.length-1||1))*w,h-((v-min)/range)*h]);
+  const line=pts.map(p=>p.join(',')).join(' ');
+  const area=`0,${h} `+line+` ${w},${h}`;
+  const id='g'+uid();
+  return `<svg width="${w}" height="${h}" class="overflow-visible"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".25"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><polygon points="${area}" fill="url(#${id})"/><polyline points="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.5" fill="${color}"/></svg>`;
+}
+function barChart(values,labels,{w=300,h=90,color='#6366f1'}={}) {
+  const max=Math.max(...values,1),gap=8,bw=(w-gap*(values.length-1))/values.length;
+  return `<div class="w-full"><svg viewBox="0 0 ${w} ${h}" class="w-full" preserveAspectRatio="none">${values.map((v,i)=>{const bh=Math.max((v/max)*h,2);return `<rect x="${i*(bw+gap)}" y="${h-bh}" width="${bw}" height="${bh}" fill="${color}" rx="3" opacity="${.35+(v/max)*.65}"/>`;}).join('')}</svg><div class="flex justify-between mt-2">${labels.map(l=>`<span class="text-[10px] text-slate-500">${esc(l)}</span>`).join('')}</div></div>`;
+}
+function progressRing(pct,{size=64,thickness=6,color='#10b981',track='#e2e8f0'}={}) {
+  const r=(size-thickness)/2,cx=size/2,cy=size/2,circ=2*Math.PI*r,dash=(pct/100)*circ;
+  return `<svg width="${size}" height="${size}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${track}" stroke-width="${thickness}" class="dark:stroke-slate-700"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${thickness}" stroke-dasharray="${dash} ${circ}" transform="rotate(-90 ${cx} ${cy})" stroke-linecap="round"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="${size*.24}" font-weight="700" fill="currentColor" font-family="JetBrains Mono">${pct}%</text></svg>`;
+}
+
+/* ═══ TOAST ═══ */
+function toast(msg,type='ok',opts={}) {
+  const root=document.getElementById('toastRoot');
+  const cfg={ok:{icon:'check-circle-2',accent:'text-emerald-500',border:'border-emerald-200 dark:border-emerald-900'},error:{icon:'x-circle',accent:'text-rose-500',border:'border-rose-200 dark:border-rose-900'},warn:{icon:'alert-triangle',accent:'text-amber-500',border:'border-amber-200 dark:border-amber-900'},info:{icon:'info',accent:'text-brand-500',border:'border-brand-200 dark:border-brand-900'}}[type]||{icon:'info',accent:'text-brand-500',border:'border-slate-200'};
+  const el=document.createElement('div');
+  el.className=`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-xl backdrop-blur-md bg-white dark:bg-slate-900 ${cfg.border} min-w-[280px] max-w-md animate-fade-in`;
+  el.innerHTML=`<i data-lucide="${cfg.icon}" class="w-5 h-5 mt-0.5 flex-shrink-0 ${cfg.accent}"></i><div class="flex-1 text-sm"><div class="font-medium">${esc(msg)}</div>${opts.desc?`<div class="text-slate-500 text-xs mt-0.5">${esc(opts.desc)}</div>`:''}</div><button class="text-slate-400 hover:text-slate-600 -mr-1 -mt-1 p-1 rounded"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>`;
+  root.appendChild(el); refreshIcons();
+  const btn=el.querySelector('button'); if(btn) btn.onclick=()=>el.remove();
+  setTimeout(()=>{el.style.transition='all .3s';el.style.opacity='0';el.style.transform='translateX(24px)';setTimeout(()=>el.remove(),300);},opts.duration||4200);
+}
+
+/* ═══ MODAL ═══ */
+function openModal({title,description,icon,body,actions,size='md',onMount}) {
+  const sizes={sm:'max-w-md',md:'max-w-lg',lg:'max-w-2xl',xl:'max-w-4xl','2xl':'max-w-6xl'};
+  document.getElementById('modalRoot').innerHTML=`<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm animate-fade-in" id="modalBackdrop"><div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full ${sizes[size]} max-h-[90vh] flex flex-col animate-scale-in border border-slate-200 dark:border-slate-800"><div class="flex items-start justify-between p-6 border-b border-slate-100 dark:border-slate-800"><div class="flex items-start gap-3">${icon?`<div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0"><i data-lucide="${icon}" class="w-5 h-5"></i></div>`:''}<div><h3 class="text-lg font-semibold">${esc(title)}</h3>${description?`<p class="text-sm text-slate-500 mt-0.5">${esc(description)}</p>`:''}</div></div><button onclick="closeModal()" class="p-1.5 -m-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button></div><div class="p-6 overflow-y-auto flex-1">${body}</div>${actions?`<div class="px-6 py-4 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 rounded-b-2xl flex justify-end gap-2">${actions}</div>`:''}</div></div>`;
+  refreshIcons();
+  const bd=document.getElementById('modalBackdrop');
+  if(bd) bd.addEventListener('click',e=>{if(e.target.id==='modalBackdrop') closeModal();});
+  if(onMount) setTimeout(onMount,30);
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+
+/* ═══ DB ═══ */
+const DB_KEY='fdr_sentinel_v7';
+let DB=null;
+const state={user:null,page:'dashboard',param:null,tab:'overview',dark:localStorage.getItem('fdr_dark')==='1',paletteOpen:false,paletteQuery:''};
+
+function save(){ try{localStorage.setItem(DB_KEY,JSON.stringify(DB));}catch(e){console.warn('Save failed',e);} }
+function reload(){ try{const raw=localStorage.getItem(DB_KEY);DB=raw?JSON.parse(raw):null;}catch(e){DB=null;} }
+function wipe(){ openModal({title:'Reset demo data?',description:'Clears all local records and reloads seeded demo data.',icon:'refresh-cw',body:'<p class="text-sm text-slate-600 dark:text-slate-400">Any instruments, findings, or releases you created will be lost.</p>',actions:`<button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button onclick="localStorage.removeItem('${DB_KEY}');localStorage.removeItem('fdr_user');location.reload()" class="px-4 py-2 rounded-lg text-sm font-medium bg-rose-600 text-white hover:bg-rose-700">Reset demo</button>`}); }
+
+/* ═══ SEED ═══ */
+async function seedData() {
+  const t=new Date();
+  const seq={institutions:3,users:6,instruments:0,documents:0,extracted_fields:0,findings:0,lifecycle_events:0,release_cases:0,clearances:0,audit_events:0,bank_verifications:0,notifications:0};
+  const institutions=[
+    {id:1,name:'Sunrise Institute of Technology',code:'SIT001',state:'Maharashtra',status:'active'},
+    {id:2,name:'National College of Engineering',code:'NCE002',state:'Karnataka',status:'active'},
+    {id:3,name:'Coastal Technical University',code:'CTU003',state:'Tamil Nadu',status:'active'}
+  ];
+  const users=[
+    {id:1,username:'admin',password:'admin123',role:'admin',full_name:'System Administrator',institution_id:null,avatar_color:'#6366f1'},
+    {id:2,username:'inst1',password:'inst123',role:'institution',full_name:'Rajesh Kumar',institution_id:1,avatar_color:'#10b981'},
+    {id:3,username:'inst2',password:'inst123',role:'institution',full_name:'Priya Sharma',institution_id:2,avatar_color:'#f59e0b'},
+    {id:4,username:'scrutiny1',password:'scr123',role:'scrutiny',full_name:'Anil Verma',institution_id:null,avatar_color:'#3b82f6'},
+    {id:5,username:'approver1',password:'app123',role:'approver',full_name:'Dr. Meera Joshi',institution_id:null,avatar_color:'#8b5cf6'},
+    {id:6,username:'auditor1',password:'aud123',role:'auditor',full_name:'Sunil Rao',institution_id:null,avatar_color:'#ec4899'}
+  ];
+  const rawInstruments=[
+    {institution_id:1,reference:'FDR-2024-001',bank:'SBI',amount:500000,issueOffset:-300,maturityOffset:65},
+    {institution_id:1,reference:'FDR-2024-002',bank:'HDFC',amount:250000,issueOffset:-700,maturityOffset:20},
+    {institution_id:2,reference:'FDR-2024-003',bank:'ICICI',amount:750000,issueOffset:-400,maturityOffset:180},
+    {institution_id:2,reference:'FDR-2024-004',bank:'Axis',amount:1000000,issueOffset:-730,maturityOffset:-5},
+    {institution_id:3,reference:'FDR-2022-100',bank:'PNB',amount:300000,issueOffset:-900,maturityOffset:-180,status:'replaced'},
+    {institution_id:3,reference:'FDR-2023-100R',bank:'PNB',amount:300000,issueOffset:-180,maturityOffset:545,linked:5}
+  ];
+  const instruments=rawInstruments.map(r=>({id:++seq.instruments,institution_id:r.institution_id,reference:r.reference,bank:r.bank,amount:r.amount,issue_date:addDays(t,r.issueOffset).toISOString().slice(0,10),maturity_date:addDays(t,r.maturityOffset).toISOString().slice(0,10),lifecycle_status:r.status||'active',linked_instrument_id:r.linked||null,created_at:addDays(t,r.issueOffset).toISOString()}));
+  const lifecycle_events=[];
+  for(const i of instruments) lifecycle_events.push({id:++seq.lifecycle_events,instrument_id:i.id,event_type:'issued',event_date:i.created_at,linked_instrument_id:null,reason:'Instrument registered',actor_id:1});
+  lifecycle_events.push(
+    {id:++seq.lifecycle_events,instrument_id:5,event_type:'replaced',event_date:addDays(t,-180).toISOString(),linked_instrument_id:6,reason:'Maturity reached — replaced',actor_id:1},
+    {id:++seq.lifecycle_events,instrument_id:6,event_type:'replacement_for',event_date:addDays(t,-180).toISOString(),linked_instrument_id:5,reason:'Replacement of FDR-2022-100',actor_id:1}
+  );
+  const doc={id:++seq.documents,instrument_id:2,filename:'FDR-2024-002_HDFC.png',storage_path:'(seeded)',checksum:'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',version:1,uploaded_by:1,uploaded_at:addDays(t,-30).toISOString(),metadata:{pages:1,size:245678,mime:'image/png',exif:'Screenshot tool used',tamperFlags:['Screenshot detected — not a bank-issued scan']}};
+  const extracted=[
+    {id:++seq.extracted_fields,document_id:doc.id,field_name:'reference',extracted_value:'FDR-2024-002',confidence:0.93,source_region:'page1 · top-right'},
+    {id:++seq.extracted_fields,document_id:doc.id,field_name:'amount',extracted_value:'280000',confidence:0.81,source_region:'page1 · center'},
+    {id:++seq.extracted_fields,document_id:doc.id,field_name:'issue_date',extracted_value:addDays(t,-700).toLocaleDateString('en-GB'),confidence:0.79,source_region:'page1 · center'},
+    {id:++seq.extracted_fields,document_id:doc.id,field_name:'maturity_date',extracted_value:addDays(t,20).toLocaleDateString('en-GB'),confidence:0.79,source_region:'page1 · center'}
+  ];
+  const findings=[{id:++seq.findings,document_id:doc.id,instrument_id:2,field_name:'amount',submitted_value:'250000',extracted_value:'280000',finding_type:'mismatch',severity:'high',review_status:'pending'}];
+  const bank_verifications=[
+    {id:++seq.bank_verifications,instrument_id:1,reference:'BV/2024/001',status:'verified',bank:'SBI',verified_by:1,verified_at:addDays(t,-200).toISOString(),evidence_ref:'BV-SBI-2401-8842',notes:'Confirmed via NEFT verification API',mode:'simulated'},
+    {id:++seq.bank_verifications,instrument_id:3,reference:'BV/2024/003',status:'verified',bank:'ICICI',verified_by:1,verified_at:addDays(t,-50).toISOString(),evidence_ref:'BV-ICICI-2403-4412',notes:'Confirmed via NEFT verification API',mode:'simulated'}
+  ];
+  const release_case={id:++seq.release_cases,instrument_id:4,status:'submitted',requested_by:3,requested_at:addDays(t,-2).toISOString(),decided_by:null,decided_at:null,decision_reason:null};
+  const clearances=[
+    {id:++seq.clearances,case_id:release_case.id,requirement_code:'no_dues_certificate',status:'satisfied',evidence_reference:'NDC/2024/004',reviewer_id:1,updated_at:addDays(t,-1).toISOString()},
+    {id:++seq.clearances,case_id:release_case.id,requirement_code:'bank_confirmation',status:'missing',evidence_reference:null,reviewer_id:null,updated_at:release_case.requested_at},
+    {id:++seq.clearances,case_id:release_case.id,requirement_code:'approval_reference',status:'missing',evidence_reference:null,reviewer_id:null,updated_at:release_case.requested_at},
+    {id:++seq.clearances,case_id:release_case.id,requirement_code:'auditor_clearance',status:'missing',evidence_reference:null,reviewer_id:null,updated_at:release_case.requested_at}
+  ];
+  const policy={
+    version:'v1.0-demo',source_reference:'AICTE Approval Process Handbook 2024-25 (illustrative)',effective_from:'2024-01-01',
+    requirements:[
+      {code:'no_dues_certificate',label:'No-dues certificate',description:'Institution-issued NDC confirming no outstanding dues'},
+      {code:'bank_confirmation',label:'Bank FDR confirmation',description:'Bank-issued confirmation of FDR details'},
+      {code:'approval_reference',label:'Regulatory approval reference',description:'Applicable AICTE approval reference'},
+      {code:'auditor_clearance',label:'Auditor clearance',description:'Internal auditor sign-off'}
+    ],
+    escalation_matrix:[
+      {level:1,days:30,role:'scrutiny',label:'Reminder to scrutiny officer'},
+      {level:2,days:15,role:'approver',label:'Escalate to approving authority'},
+      {level:3,days:7,role:'admin',label:'Escalate to system admin'}
+    ],
+    history:[
+      {version:'v1.0-demo',date:'2024-01-01',changes:'Initial policy — 4 clearance requirements'},
+      {version:'v0.9-draft',date:'2023-10-15',changes:'Draft — no auditor clearance requirement'}
+    ]
+  };
+  const prev='0'.repeat(64),ts=new Date().toISOString();
+  const hash=await sha256(`${prev}|seed.init|system|0|Demo data seeded|${ts}`);
+  const audit_events=[{id:++seq.audit_events,actor_id:1,actor_role:'admin',action:'seed.init',entity:'system',entity_id:0,reason:'Demo data seeded',before_state:null,after_state:null,timestamp:ts,prev_hash:prev,hash}];
+  const notifications=[
+    {id:++seq.notifications,user_id:2,type:'maturity',title:'FDR-2024-002 maturing in 20 days',body:'Security deposit maturing soon. Start renewal or replacement.',entity:'instrument',entity_id:2,read:false,created_at:addDays(t,-1).toISOString()},
+    {id:++seq.notifications,user_id:4,type:'finding',title:'New mismatch finding on FDR-2024-002',body:'Amount mismatch detected during OCR. Review required.',entity:'instrument',entity_id:2,read:false,created_at:addDays(t,-2).toISOString()}
+  ];
+  return {seq,institutions,users,instruments,documents:[doc],extracted_fields:extracted,findings,lifecycle_events,release_cases:[release_case],clearances,policy,audit_events,bank_verifications,notifications};
+}
+
+/* ═══ AUTH ═══ */
+function login(u,p){ const x=DB.users.find(y=>y.username===u&&y.password===p); if(!x) return false; state.user=x; localStorage.setItem('fdr_user',x.username); return true; }
+function logout(){ state.user=null; localStorage.removeItem('fdr_user'); state.page='login'; state.param=null; render(); }
+function restoreSession(){ const un=localStorage.getItem('fdr_user'); if(un){ const u=DB.users.find(y=>y.username===un); if(u){ state.user=u; return true; } } return false; }
+
+/* ═══ HELPERS ═══ */
+const getInst=id=>DB.institutions.find(i=>i.id===id);
+const getInstr=id=>DB.instruments.find(i=>i.id===id);
+const getUser=id=>DB.users.find(u=>u.id===id);
+const visibleInstruments=()=>{ if(!state.user) return []; if(state.user.role==='institution') return DB.instruments.filter(i=>i.institution_id===state.user.institution_id); return DB.instruments; };
+const canAccess=inst=>!state.user?false:(state.user.role==='institution'?inst.institution_id===state.user.institution_id:true);
+const findingsFor=iid=>DB.findings.filter(f=>f.instrument_id===iid);
+const docsFor=iid=>DB.documents.filter(d=>d.instrument_id===iid);
+const eventsFor=iid=>DB.lifecycle_events.filter(e=>e.instrument_id===iid).sort((a,b)=>b.id-a.id);
+const releaseCaseFor=iid=>DB.release_cases.filter(r=>r.instrument_id===iid).sort((a,b)=>b.id-a.id)[0];
+const clearancesFor=cid=>DB.clearances.filter(c=>c.case_id===cid);
+const extractedFor=did=>DB.extracted_fields.filter(e=>e.document_id===did);
+const bankVerifFor=iid=>DB.bank_verifications.filter(b=>b.instrument_id===iid);
+const notificationsForUser=uid=>DB.notifications.filter(n=>n.user_id===uid&&!n.read);
+
+function toDDMMYYYY(iso){ if(!iso) return ''; const d=new Date(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
+function normalizeDate(s){ if(!s) return null; s=String(s).trim(); const m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; if(s.match(/^\d{4}-\d{2}-\d{2}$/)) return s; return null; }
+
+function verificationState(iid, field){
+  const bv=bankVerifFor(iid).find(b=>b.status==='verified');
+  const f=findingsFor(iid).find(x=>x.field_name===field&&x.review_status==='verified');
+  const ext=docsFor(iid).flatMap(d=>extractedFor(d.id)).find(e=>e.field_name===field);
+  if(bv&&f) return 'verified';
+  if(ext) return 'extracted';
+  return 'submitted';
+}
+
+function healthScore(iid){
+  const insts=DB.instruments.filter(i=>i.institution_id===iid);
+  if(insts.length===0) return {overall:0,grade:'—',dims:[],insts:0,verified:0,matured:0,expiring:0};
+  const active=insts.filter(i=>i.lifecycle_status==='active');
+  const matured=active.filter(i=>daysFrom(i.maturity_date)<0);
+  const expiring=active.filter(i=>daysFrom(i.maturity_date)>=0&&daysFrom(i.maturity_date)<=30);
+  const verified=insts.filter(i=>bankVerifFor(i.id).some(b=>b.status==='verified'));
+  const pendingFindings=DB.findings.filter(f=>insts.some(i=>i.id===f.instrument_id)&&f.review_status==='pending');
+  const docsScore=Math.max(0,Math.round((insts.filter(i=>docsFor(i.id).length>0).length/Math.max(insts.length,1))*100));
+  const verifyScore=Math.round((verified.length/Math.max(insts.length,1))*100);
+  const renewalScore=Math.max(0,Math.round(100-(expiring.length/Math.max(active.length,1))*100));
+  const findingScore=Math.max(0,100-pendingFindings.length*10);
+  const dims=[
+    {label:'Documentation',value:docsScore,color:docsScore>=80?'#10b981':docsScore>=60?'#f59e0b':'#ef4444'},
+    {label:'Bank Verification',value:verifyScore,color:verifyScore>=80?'#10b981':verifyScore>=60?'#f59e0b':'#ef4444'},
+    {label:'Renewal Discipline',value:renewalScore,color:renewalScore>=80?'#10b981':renewalScore>=60?'#f59e0b':'#ef4444'},
+    {label:'Finding Resolution',value:findingScore,color:findingScore>=80?'#10b981':findingScore>=60?'#f59e0b':'#ef4444'}
+  ];
+  const overall=Math.round(dims.reduce((s,d)=>s+d.value,0)/dims.length);
+  const grade=overall>=90?'A+':overall>=80?'A':overall>=70?'B':overall>=60?'C':'D';
+  return {overall,grade,dims,insts:insts.length,verified:verified.length,matured:matured.length,expiring:expiring.length};
+}
+
+/* ═══ AUDIT ═══ */
+async function audit(action,entity,entityId,reason=null,before=null,after=null){
+  const prev=DB.audit_events.length?DB.audit_events[DB.audit_events.length-1].hash:'0'.repeat(64);
+  const ts=new Date().toISOString();
+  const hash=await sha256(`${prev}|${action}|${entity}|${entityId}|${reason||''}|${ts}`);
+  DB.audit_events.push({id:DB.seq.audit_events++,actor_id:state.user?.id??null,actor_role:state.user?.role??'system',action,entity,entity_id:entityId,reason,before_state:before,after_state:after,timestamp:ts,prev_hash:prev,hash});
+  save();
+}
+async function verifyAudit(){
+  let prev='0'.repeat(64);
+  for(const ev of DB.audit_events){
+    if(ev.prev_hash!==prev) return {valid:false,broken_at:ev.id,total:DB.audit_events.length};
+    const expected=await sha256(`${ev.prev_hash}|${ev.action}|${ev.entity}|${ev.entity_id}|${ev.reason||''}|${ev.timestamp}`);
+    if(ev.hash!==expected) return {valid:false,broken_at:ev.id,total:DB.audit_events.length};
+    prev=ev.hash;
+  }
+  return {valid:true,total:DB.audit_events.length};
+}
+
+/* ═══ BUSINESS LOGIC ═══ */
+async function createInstrument({institution_id,reference,bank,amount,issue_date,maturity_date,filename,checksum,extracted}){
+  const dup=DB.instruments.find(i=>i.reference.toLowerCase()===reference.toLowerCase());
+  const inst={id:++DB.seq.instruments,institution_id:+institution_id,reference,bank,amount:+amount,issue_date,maturity_date,lifecycle_status:'active',linked_instrument_id:null,created_at:new Date().toISOString()};
+  DB.instruments.push(inst);
+  const doc={id:++DB.seq.documents,instrument_id:inst.id,filename,storage_path:'(client)',checksum,version:1,uploaded_by:state.user.id,uploaded_at:new Date().toISOString(),metadata:{pages:1,size:0,mime:'image/png',exif:'n/a',tamperFlags:[]}};
+  DB.documents.push(doc);
+  const submitted={reference,amount:String(amount),bank,issue_date:toDDMMYYYY(issue_date),maturity_date:toDDMMYYYY(maturity_date)};
+  for(const[field,val]of Object.entries(extracted||{})){ if(!val) continue; DB.extracted_fields.push({id:++DB.seq.extracted_fields,document_id:doc.id,field_name:field,extracted_value:String(val),confidence:0.85,source_region:'page1'}); }
+  for(const field of Object.keys(extracted||{})){
+    const sub=submitted[field],ext=extracted[field];
+    if(!sub||!ext) continue;
+    let mismatch=false;
+    if(field==='amount') mismatch=parseFloat(sub)!==parseFloat(String(ext).replace(/,/g,''));
+    else if(field==='issue_date'||field==='maturity_date') mismatch=normalizeDate(sub)!==normalizeDate(ext);
+    else mismatch=String(sub).trim().toLowerCase()!==String(ext).trim().toLowerCase();
+    if(mismatch) DB.findings.push({id:++DB.seq.findings,document_id:doc.id,instrument_id:inst.id,field_name:field,submitted_value:sub,extracted_value:String(ext),finding_type:'mismatch',severity:'medium',review_status:'pending'});
+  }
+  if(dup) DB.findings.push({id:++DB.seq.findings,document_id:doc.id,instrument_id:inst.id,field_name:'reference',submitted_value:reference,extracted_value:dup.reference,finding_type:'duplicate',severity:'high',review_status:'pending'});
+  DB.lifecycle_events.push({id:++DB.seq.lifecycle_events,instrument_id:inst.id,event_type:'issued',event_date:new Date().toISOString(),linked_instrument_id:null,reason:'New submission',actor_id:state.user.id});
+  save();
+  await audit('instrument.create','instrument',inst.id,null,null,{reference,amount});
+  return inst;
+}
+
+async function reviewFinding(fid, decision, reason){
+  const f=DB.findings.find(x=>x.id===fid); if(!f) return;
+  const before=f.review_status; f.review_status=decision; save();
+  await audit('finding.review','finding',fid,reason,{review_status:before},{review_status:decision});
+}
+
+async function createRelease(iid){
+  const existing=DB.release_cases.find(r=>r.instrument_id===iid&&['submitted','pending_approval'].includes(r.status));
+  if(existing){ toast('A release case is already open','warn'); return null; }
+  const rc={id:++DB.seq.release_cases,instrument_id:iid,status:'submitted',requested_by:state.user.id,requested_at:new Date().toISOString(),decided_by:null,decided_at:null,decision_reason:null};
+  DB.release_cases.push(rc);
+  for(const req of DB.policy.requirements) DB.clearances.push({id:++DB.seq.clearances,case_id:rc.id,requirement_code:req.code,status:'missing',evidence_reference:null,reviewer_id:null,updated_at:new Date().toISOString()});
+  save();
+  await audit('release.create','release_case',rc.id);
+  return rc;
+}
+
+async function satisfyClearance(cid, code, evidence){
+  const c=DB.clearances.find(x=>x.case_id===cid&&x.requirement_code===code); if(!c) return;
+  c.status='satisfied'; c.evidence_reference=evidence; c.reviewer_id=state.user.id; c.updated_at=new Date().toISOString();
+  save();
+  await audit('clearance.satisfy','clearance',c.id,null,null,{code,evidence});
+}
+
+async function decideRelease(cid, decision, reason){
+  const rc=DB.release_cases.find(r=>r.id===cid); if(!rc) return {ok:false,msg:'Case not found'};
+  if(rc.status==='approved') return {ok:false,msg:'Already approved'};
+  if(decision==='approve'){
+    const pending=clearancesFor(cid).filter(c=>c.status!=='satisfied').length;
+    if(pending>0) return {ok:false,msg:`${pending} clearance(s) still pending — cannot approve`};
+    rc.status='approved';
+    const inst=getInstr(rc.instrument_id);
+    if(inst) inst.lifecycle_status='released';
+    DB.lifecycle_events.push({id:++DB.seq.lifecycle_events,instrument_id:rc.instrument_id,event_type:'released',event_date:new Date().toISOString(),linked_instrument_id:null,reason,actor_id:state.user.id});
+  } else rc.status='rejected';
+  rc.decided_by=state.user.id; rc.decided_at=new Date().toISOString(); rc.decision_reason=reason;
+  save();
+  await audit('release.decide','release_case',cid,reason,null,{decision});
+  return {ok:true};
+}
+
+async function replaceInstrument(iid, {reference,bank,amount,issue_date,maturity_date,reason,filename,checksum,extracted}){
+  const old=getInstr(iid); if(!old) return null;
+  const newInst={id:++DB.seq.instruments,institution_id:old.institution_id,reference,bank,amount:+amount,issue_date,maturity_date,lifecycle_status:'active',linked_instrument_id:old.id,created_at:new Date().toISOString()};
+  DB.instruments.push(newInst); old.lifecycle_status='replaced';
+  const doc={id:++DB.seq.documents,instrument_id:newInst.id,filename,storage_path:'(client)',checksum,version:1,uploaded_by:state.user.id,uploaded_at:new Date().toISOString(),metadata:{pages:1,size:0,mime:'image/png',exif:'n/a',tamperFlags:[]}};
+  DB.documents.push(doc);
+  for(const[field,val]of Object.entries(extracted||{})){ if(!val) continue; DB.extracted_fields.push({id:++DB.seq.extracted_fields,document_id:doc.id,field_name:field,extracted_value:String(val),confidence:0.85,source_region:'page1'}); }
+  DB.lifecycle_events.push(
+    {id:++DB.seq.lifecycle_events,instrument_id:old.id,event_type:'replaced',event_date:new Date().toISOString(),linked_instrument_id:newInst.id,reason,actor_id:state.user.id},
+    {id:++DB.seq.lifecycle_events,instrument_id:newInst.id,event_type:'replacement_for',event_date:new Date().toISOString(),linked_instrument_id:old.id,reason,actor_id:state.user.id}
+  );
+  save();
+  await audit('instrument.replace','instrument',newInst.id,reason,{old_id:old.id},{new_id:newInst.id});
+  return newInst;
+}
+
+/* Deterministic bank verification — same instrument = same result */
+async function simulateBankVerification(iid){
+  const inst=getInstr(iid); if(!inst) return null;
+  // Deterministic hash based on instrument ID — always same result
+  const seed = inst.id * 7 + inst.reference.length;
+  const outcomes = ['verified','verified','verified','verified','mismatch','failed'];
+  const status = outcomes[seed % outcomes.length];
+  const notes = status === 'verified' ? 'Details matched against bank records (simulated NEFT verification API)' : status === 'mismatch' ? 'Amount mismatch detected at bank (simulated)' : 'Bank API timeout / connection error (simulated)';
+  const bv = {id:++DB.seq.bank_verifications,instrument_id:iid,reference:`BV/2025/${String(DB.seq.bank_verifications).padStart(4,'0')}`,status,bank:inst.bank,verified_by:state.user.id,verified_at:new Date().toISOString(),evidence_ref:status==='verified'?`BV-${inst.bank}-${uid().toUpperCase()}`:null,notes,mode:'simulated'};
+  DB.bank_verifications.push(bv); save();
+  await audit('bank.verify','instrument',iid,notes,null,{status});
+  return bv;
+}
+
+async function extractFromImage(file){
+  if(typeof Tesseract==='undefined'||!Tesseract.createWorker) throw new Error('OCR engine not loaded');
+  const worker=await Tesseract.createWorker('eng');
+  try{
+    const{data:{text}}=await worker.recognize(file);
+    const fields={},t=text||'';
+    const ref=t.match(/FDR[-\s]?\d{4,}/i),amt=t.match(/(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d+)?)/i),dates=t.match(/\d{2}[\/\-]\d{2}[\/\-]\d{4}/g)||[];
+    if(ref) fields.reference=ref[0].trim();
+    if(amt) fields.amount=amt[1].replace(/,/g,'');
+    if(dates[0]) fields.issue_date=dates[0];
+    if(dates[1]) fields.maturity_date=dates[1];
+    return {text:t,fields};
+  } finally { try{await worker.terminate();}catch(e){} }
+}
+
+/* ═══ UI PRIMITIVES ═══ */
+function pill(text, color, opts={}){
+  const colors={
+    slate:'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    brand:'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300',
+    emerald:'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+    amber:'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+    rose:'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+  };
+  const dotColors={slate:'bg-slate-500',brand:'bg-brand-500',emerald:'bg-emerald-500',amber:'bg-amber-500',rose:'bg-rose-500'};
+  const dot=opts.dot!==false?`<span class="w-1.5 h-1.5 rounded-full ${dotColors[color]||'bg-slate-500'}"></span>`:'';
+  return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${colors[color]||colors.slate}">${dot}${esc(text)}</span>`;
+}
+function statusPill(s){
+  const map={active:['Active','brand'],released:['Released','emerald'],replaced:['Replaced','slate'],matured:['Matured','amber'],submitted:['Submitted','amber'],approved:['Approved','emerald'],rejected:['Rejected','rose'],pending:['Pending','amber'],verified:['Verified','emerald'],accepted_correction:['Accepted','brand'],missing:['Missing','amber'],satisfied:['Satisfied','emerald'],failed:['Failed','rose'],mismatch:['Mismatch','rose'],withdrawn:['Withdrawn','slate']};
+  const[t,c]=map[s]||[s,'slate']; return pill(t,c);
+}
+function verificationBadge(s){
+  const cfg={submitted:{label:'Submitted',color:'slate'},extracted:{label:'OCR Extracted',color:'amber'},verified:{label:'Independently Verified',color:'emerald'}}[s]||{label:s,color:'slate'};
+  return pill(cfg.label, cfg.color);
+}
+function avatar(user, size='md'){ const s={sm:'w-7 h-7 text-[10px]',md:'w-9 h-9 text-xs',lg:'w-12 h-12 text-sm'}[size]; const c=user?.avatar_color||'#6366f1'; return `<div class="${s} rounded-full flex items-center justify-center font-semibold text-white flex-shrink-0" style="background:${c}">${initials(user?.full_name||user?.username)}</div>`; }
+function confidenceBar(conf){ const pct=Math.round(conf*100); const bg=pct>=85?'#10b981':pct>=70?'#f59e0b':'#ef4444'; return `<div class="flex items-center gap-2"><div class="w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full rounded-full transition-all" style="width:${pct}%;background:${bg}"></div></div><span class="text-[10px] font-mono text-slate-500">${pct}%</span></div>`; }
+function emptyState(icon, title, description, action=''){ return `<div class="flex flex-col items-center justify-center py-16 px-6 text-center"><div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4"><i data-lucide="${icon}" class="w-7 h-7 text-slate-400"></i></div><h3 class="font-semibold mb-1">${esc(title)}</h3><p class="text-sm text-slate-500 max-w-sm mb-4">${esc(description)}</p>${action}</div>`; }
+
+/* ═══ JUDGE INFO ═══ */
+function openJudgeInfo(){
+  const tabs=['Q&A Defence','Before / After','Impact Model','Policy Source'];
+  openModal({title:'Judge Information',description:'Everything you might ask — pre-answered',icon:'graduation-cap',size:'2xl',
+    body:`<div class="space-y-4"><div class="flex gap-2 flex-wrap border-b border-slate-200 dark:border-slate-800 pb-3">${tabs.map((t,i)=>`<button onclick="document.querySelectorAll('[data-jt]').forEach(el=>el.classList.add('hidden'));document.getElementById('jt-${i}').classList.remove('hidden');document.querySelectorAll('[data-jb]').forEach(b=>{b.classList.remove('bg-brand-600','text-white');b.classList.add('bg-slate-100','dark:bg-slate-800','text-slate-700','dark:text-slate-300')});this.classList.add('bg-brand-600','text-white');this.classList.remove('bg-slate-100','dark:bg-slate-800','text-slate-700','dark:text-slate-300')" data-jb class="px-3 py-1.5 rounded-lg text-xs font-medium ${i===0?'bg-brand-600 text-white':'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}">${t}</button>`).join('')}</div><div id="jt-0">${renderQATab()}</div><div id="jt-1" class="hidden">${renderBeforeAfterTab()}</div><div id="jt-2" class="hidden">${renderImpactTab()}</div><div id="jt-3" class="hidden">${renderPolicyTab()}</div></div>`,
+    actions:`<button onclick="closeModal()" class="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium">Close</button>`});
+}
+function renderQATab(){
+  return `<div class="space-y-3"><div class="bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-900 rounded-lg p-3 text-sm"><div class="flex items-start gap-2"><i data-lucide="lightbulb" class="w-4 h-4 text-brand-600 mt-0.5 flex-shrink-0"></i><div class="text-brand-800 dark:text-brand-300"><b>Preparation is our defence.</b> Every tough question pre-answered honestly.</div></div></div>${QA_DEFENCE.map((qa,i)=>`<details class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden"><summary class="cursor-pointer px-4 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"><span class="w-6 h-6 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 flex items-center justify-center text-xs font-bold flex-shrink-0">${i+1}</span><span class="font-medium text-sm flex-1">${esc(qa.q)}</span><i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i></summary><div class="px-4 pb-3 pl-13 ml-9"><div class="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300"><i data-lucide="arrow-right" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0"></i><div>${esc(qa.a)}</div></div></div></details>`).join('')}</div>`;
+}
+function renderBeforeAfterTab(){
+  return `<div class="space-y-4"><div class="text-sm text-slate-600 dark:text-slate-400">The problem AICTE faces today vs what FDR Sentinel enables.</div><div class="grid md:grid-cols-2 gap-4"><div class="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 rounded-xl p-4"><div class="flex items-center gap-2 mb-3"><div class="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center"><i data-lucide="x" class="w-4 h-4"></i></div><div class="font-semibold text-rose-800 dark:text-rose-300">Today (Manual)</div></div><div class="space-y-2">${BEFORE_AFTER.before.map(b=>`<div class="flex items-start gap-2 text-sm"><i data-lucide="${b.icon}" class="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0"></i><div><div class="font-medium text-slate-800 dark:text-slate-200">${esc(b.title)}</div><div class="text-xs text-slate-600 dark:text-slate-400">${esc(b.desc)}</div></div></div>`).join('')}</div></div><div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-xl p-4"><div class="flex items-center gap-2 mb-3"><div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center"><i data-lucide="check" class="w-4 h-4"></i></div><div class="font-semibold text-emerald-800 dark:text-emerald-300">With FDR Sentinel</div></div><div class="space-y-2">${BEFORE_AFTER.after.map(a=>`<div class="flex items-start gap-2 text-sm"><i data-lucide="${a.icon}" class="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0"></i><div><div class="font-medium text-slate-800 dark:text-slate-200">${esc(a.title)}</div><div class="text-xs text-slate-600 dark:text-slate-400">${esc(a.desc)}</div></div></div>`).join('')}</div></div></div></div>`;
+}
+function renderImpactTab(){
+  const m=IMPACT_MODEL;
+  const totalInst=m.institutionCount*m.avgInstrumentsPerInst;
+  const currentHours=Math.round(totalInst*m.currentMinutesPerInstrumentPerMonth/60);
+  const newHours=Math.round(totalInst*m.newMinutesPerInstrumentPerMonth/60);
+  const savedHours=currentHours-newHours;
+  const pctReduction=Math.round((savedHours/currentHours)*100);
+  return `<div class="space-y-4"><div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300"><div class="flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i><div>${esc(m.caveat)}</div></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-3"><div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4"><div class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Institutions</div><div class="text-2xl font-bold font-mono">${(m.institutionCount/1000).toFixed(0)}K+</div></div><div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4"><div class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Est. Instruments</div><div class="text-2xl font-bold font-mono">${(totalInst/1000).toFixed(0)}K</div></div><div class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-4"><div class="text-[10px] text-emerald-600 uppercase tracking-wider font-semibold">Hours Saved/Mo</div><div class="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400">${savedHours.toLocaleString('en-IN')}</div></div><div class="bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-900 rounded-xl p-4"><div class="text-[10px] text-brand-600 uppercase tracking-wider font-semibold">Effort Reduction</div><div class="text-2xl font-bold font-mono text-brand-700 dark:text-brand-400">${pctReduction}%</div></div></div><div><div class="text-sm font-semibold mb-2">Data Sources</div><div class="space-y-1.5">${m.dataSources.map(d=>`<div class="text-xs bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg flex items-center justify-between"><div><div class="font-medium">${esc(d.label)}</div><div class="text-slate-500 text-[10px]">Source: ${esc(d.source)}</div></div><div class="font-mono font-semibold">${esc(d.value)}</div></div>`).join('')}</div></div></div>`;
+}
+function renderPolicyTab(){
+  return `<div class="space-y-3"><div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4"><div class="flex items-start gap-3"><div class="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-950 flex items-center justify-center flex-shrink-0"><i data-lucide="book-open" class="w-5 h-5 text-brand-600"></i></div><div><div class="font-semibold">${esc(POLICY_SOURCE.handbook)}</div><div class="text-xs text-slate-500">Edition ${esc(POLICY_SOURCE.edition)} · ${esc(POLICY_SOURCE.clause)}</div><a href="${POLICY_SOURCE.url}" target="_blank" class="text-xs text-brand-600 hover:underline mt-1 inline-flex items-center gap-1">Official source <i data-lucide="external-link" class="w-3 h-3"></i></a></div></div></div><div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4"><div class="text-sm font-semibold mb-2">Relevant Excerpts (paraphrased)</div><div class="space-y-2">${POLICY_SOURCE.excerpts.map((e,i)=>`<div class="flex items-start gap-2 text-sm"><span class="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-mono flex-shrink-0">${i+1}</span><div class="text-slate-700 dark:text-slate-300">${esc(e)}</div></div>`).join('')}</div></div><div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300"><div class="flex items-start gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 mt-0.5 flex-shrink-0"></i><div>${esc(POLICY_SOURCE.disclaimer)}</div></div></div></div>`;
+}
+
+/* ═══ DASHBOARD ═══ */
+function heroBanner(insts, active, verified, atRisk60){
+  const total=insts.reduce((s,i)=>s+(+i.amount||0),0);
+  const verificationRate=insts.length>0?Math.round((verified.length/insts.length)*100):0;
+  return `<section class="relative overflow-hidden rounded-3xl bg-slate-900 dark:bg-slate-950 text-white">
+    <div class="absolute inset-0 hero-glow"></div>
+    <div class="absolute inset-0 opacity-[0.12]" style="background-image:radial-gradient(circle at 1px 1px,white 1px,transparent 0);background-size:24px 24px"></div>
+    <div class="relative p-6 lg:p-8">
+      <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[11px] font-medium mb-3">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>
+            <span class="text-white/80">Live monitoring</span>
+          </div>
+          <h1 class="text-2xl lg:text-3xl font-bold tracking-tight">Good ${greeting()}, ${esc(state.user.full_name.split(' ')[0])}</h1>
+          <p class="text-white/60 text-sm mt-1">${state.user.role==='institution'?esc(getInst(state.user.institution_id)?.name):`Monitoring ${DB.institutions.length} institutions · ${DB.users.length} authorized users`}</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          ${['institution','admin'].includes(state.user.role)?`<button onclick="go('create')" class="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 font-semibold text-sm hover:bg-white/90 shadow-lg shadow-white/10"><i data-lucide="plus" class="w-4 h-4"></i> New FDR</button>`:''}
+          <button onclick="openJudgeInfo()" class="btn-press inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 font-medium text-sm hover:bg-white/20"><i data-lucide="graduation-cap" class="w-4 h-4"></i> Judge Info</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 reveal-num">
+          <div class="flex items-center gap-2 mb-1.5"><i data-lucide="wallet" class="w-3.5 h-3.5 text-white/50"></i><div class="text-white/50 text-[10px] font-semibold uppercase tracking-wider">Total Deposits</div></div>
+          <div class="text-3xl font-bold font-mono tracking-tight" data-counter="${total}" data-format="compact">${fmtCompact(total)}</div>
+          <div class="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400"><i data-lucide="trending-up" class="w-3 h-3"></i><span>Across ${insts.length} instruments</span></div>
+        </div>
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 reveal-num" style="animation-delay:.08s">
+          <div class="flex items-center gap-2 mb-1.5"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i><div class="text-white/50 text-[10px] font-semibold uppercase tracking-wider">At Risk · 60 days</div></div>
+          <div class="text-3xl font-bold font-mono tracking-tight text-amber-300" data-counter="${atRisk60}" data-format="compact">${fmtCompact(atRisk60)}</div>
+          <div class="mt-1.5 flex items-center gap-1.5 text-xs text-amber-300"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 pulse-dot"></span><span>Needs action before maturity</span></div>
+        </div>
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 reveal-num" style="animation-delay:.16s">
+          <div class="flex items-center gap-2 mb-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i><div class="text-white/50 text-[10px] font-semibold uppercase tracking-wider">Bank Verified</div></div>
+          <div class="text-3xl font-bold font-mono tracking-tight text-emerald-300" data-counter="${verificationRate}" data-format="number" data-suffix="%">${verificationRate}%</div>
+          <div class="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-300"><i data-lucide="check" class="w-3 h-3"></i><span>${verified.length} of ${insts.length} confirmed</span></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+function riskExposureGrid(active){
+  const tiers=[{label:'Next 30 days',days:30,color:'amber',icon:'clock',urgent:true},{label:'Next 60 days',days:60,color:'orange',icon:'calendar-clock',urgent:false},{label:'Next 90 days',days:90,color:'brand',icon:'calendar',urgent:false}];
+  const maxAmount=Math.max(...tiers.map(t=>active.filter(i=>i.maturity_date&&daysFrom(i.maturity_date)>=0&&daysFrom(i.maturity_date)<=t.days).reduce((s,i)=>s+(+i.amount||0),0)),1);
+  const bgMap={amber:'bg-amber-50 dark:bg-amber-950/40',orange:'bg-orange-50 dark:bg-orange-950/40',brand:'bg-brand-50 dark:bg-brand-950/40'};
+  const txtMap={amber:'text-amber-600 dark:text-amber-400',orange:'text-orange-600 dark:text-orange-400',brand:'text-brand-600 dark:text-brand-400'};
+  const barMap={amber:'bg-amber-500',orange:'bg-orange-500',brand:'bg-brand-500'};
+  return `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">${tiers.map(t=>{
+    const matching=active.filter(i=>i.maturity_date&&daysFrom(i.maturity_date)>=0&&daysFrom(i.maturity_date)<=t.days);
+    const amt=matching.reduce((s,i)=>s+(+i.amount||0),0);
+    const pct=Math.round((amt/maxAmount)*100);
+    return `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 card-lift p-5"><div class="flex items-center justify-between mb-4"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg ${bgMap[t.color]} flex items-center justify-center"><i data-lucide="${t.icon}" class="w-4 h-4 ${txtMap[t.color]}"></i></div><div class="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">${t.label}</div></div>${t.urgent&&matching.length>0?`<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-semibold uppercase">Action</span>`:''}</div><div class="flex items-baseline gap-2 mb-1"><div class="text-2xl font-bold font-mono">${fmtCompact(amt)}</div><div class="text-xs text-slate-500">${matching.length} instrument${matching.length===1?'':'s'}</div></div><div class="mt-3 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full ${barMap[t.color]} bar-animate" style="width:${Math.max(pct,amt>0?4:0)}%"></div></div>${matching.length>0?`<button onclick="go('instruments')" class="mt-3 text-xs font-medium ${txtMap[t.color]} hover:underline">Review ${matching.length} item${matching.length===1?'':'s'} →</button>`:`<div class="mt-3 text-xs text-slate-400">All clear ✓</div>`}</div>`;
+  }).join('')}</div>`;
+}
+function institutionLeaderboard(){
+  const ranked=DB.institutions.map(inst=>{const hs=healthScore(inst.id);const insts=DB.instruments.filter(i=>i.institution_id===inst.id);const total=insts.reduce((s,i)=>s+(+i.amount||0),0);return{inst,hs,total,count:insts.length};}).sort((a,b)=>b.hs.overall-a.hs.overall);
+  return `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"><div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"><div><div class="text-sm font-semibold flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-brand-500"></i> Institution Health Ranking</div><div class="text-xs text-slate-500">Composite compliance score</div></div><button onclick="go('institutions')" class="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium">Full report →</button></div><div class="divide-y divide-slate-100 dark:divide-slate-800">${ranked.map((r,idx)=>{
+    const gradeColor=['A+','A'].includes(r.hs.grade)?'text-emerald-600':r.hs.grade==='B'?'text-amber-600':'text-rose-600';
+    return `<button onclick="go('instruments')" class="w-full px-5 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition text-left"><div class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-400">${idx+1}</div><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${esc(r.inst.name)}</div><div class="text-xs text-slate-500 font-mono">${esc(r.inst.code)} · ${r.count} instruments · ${fmtCompact(r.total)}</div></div><div class="text-right flex-shrink-0"><div class="text-2xl font-bold font-mono ${gradeColor} leading-none">${r.hs.overall}</div><div class="text-[10px] text-slate-400 font-medium mt-0.5">Grade ${r.hs.grade}</div></div></button>`;
+  }).join('')}</div></div>`;
+}
+function liveActivityFeed(){
+  const recent=[...DB.audit_events].reverse().slice(0,5);
+  return `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"><div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"><div class="text-sm font-semibold flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span> Live Activity</div>${['admin','auditor','approver'].includes(state.user.role)?`<button onclick="go('audit')" class="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</button>`:''}</div><div class="p-4 space-y-3">${recent.map((e,i)=>`<div class="flex items-start gap-3 ${i===0?'':'opacity-80'}"><div class="relative flex-shrink-0"><div class="w-7 h-7 rounded-full bg-brand-100 dark:bg-brand-950 text-brand-600 dark:text-brand-400 flex items-center justify-center"><i data-lucide="${auditIcon(e.action)}" class="w-3.5 h-3.5"></i></div>${i===0?'<span class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>':''}</div><div class="flex-1 min-w-0"><div class="text-xs leading-tight"><span class="font-semibold">${esc(e.actor_role)}</span><span class="text-slate-600 dark:text-slate-400"> ${esc(humanAction(e.action))}</span></div><div class="text-[10px] text-slate-400 mt-0.5">${timeAgo(e.timestamp)}</div></div></div>`).join('')}</div></div>`;
+}
+function todayFocus(expiring30, matured, pendingF, releaseAwaiting){
+  const items=[{icon:'clock',color:'amber',count:expiring30.length,label:'maturing this month',target:'instruments'},{icon:'alert-triangle',color:'rose',count:matured.length,label:'already overdue',target:'instruments'},{icon:'eye',color:'orange',count:pendingF,label:'findings need review',target:'instruments'},{icon:'check-circle-2',color:'brand',count:releaseAwaiting,label:'releases awaiting',target:'instruments'}].filter(i=>i.count>0);
+  if(items.length===0) return `<div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-900 p-6 text-center"><div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-600 flex items-center justify-center mx-auto mb-3"><i data-lucide="check-circle-2" class="w-6 h-6"></i></div><div class="font-semibold text-emerald-800 dark:text-emerald-300">All clear today</div><div class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">No pending actions</div></div>`;
+  const bgMap={amber:'bg-amber-50 dark:bg-amber-950/40',rose:'bg-rose-50 dark:bg-rose-950/40',orange:'bg-orange-50 dark:bg-orange-950/40',brand:'bg-brand-50 dark:bg-brand-950/40'};
+  const txtMap={amber:'text-amber-700 dark:text-amber-300',rose:'text-rose-700 dark:text-rose-300',orange:'text-orange-700 dark:text-orange-300',brand:'text-brand-700 dark:text-brand-300'};
+  return `<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"><div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800"><div class="text-sm font-semibold flex items-center gap-2"><i data-lucide="target" class="w-4 h-4 text-rose-500"></i> Today's Focus</div><div class="text-xs text-slate-500">${items.length} thing${items.length===1?'':'s'} need you</div></div><div class="p-4 space-y-2">${items.map(it=>`<button onclick="go('${it.target}')" class="w-full flex items-center gap-3 p-3 rounded-xl ${bgMap[it.color]} hover:scale-[1.01] transition-transform text-left"><div class="w-9 h-9 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center flex-shrink-0"><i data-lucide="${it.icon}" class="w-4 h-4 ${txtMap[it.color]}"></i></div><div class="flex-1 min-w-0"><div class="text-sm font-semibold ${txtMap[it.color]}">${it.count} ${it.label}</div></div><i data-lucide="chevron-right" class="w-4 h-4 ${txtMap[it.color]}"></i></button>`).join('')}</div></div>`;
+}
+function auditIcon(a){ if(a.includes('create'))return'plus'; if(a.includes('review'))return'eye'; if(a.includes('satisfy'))return'check'; if(a.includes('decide'))return'gavel'; if(a.includes('replace'))return'repeat'; if(a.includes('verify'))return'shield-check'; if(a.includes('seed'))return'database'; if(a.includes('bulk'))return'upload'; if(a.includes('withdraw'))return'undo-2'; return'activity'; }
+function humanAction(a){ return a.replace(/\./g,' · ').replace(/([A-Z])/g,' $1').toLowerCase().trim(); }
+function greeting(){ const h=new Date().getHours(); return h<12?'morning':h<17?'afternoon':'evening'; }
+
+/* ═══ PALETTE ═══ */
+function openPalette(){ state.paletteOpen=true; state.paletteQuery=''; renderPalette(); setTimeout(()=>document.getElementById('paletteInput')?.focus(),50); }
+function closePalette(){ state.paletteOpen=false; document.getElementById('paletteRoot').innerHTML=''; }
+function getPaletteItems(q=''){
+  q=q.toLowerCase().trim();
+  const items=[];
+  const pages=[
+    {label:'Dashboard',icon:'layout-dashboard',action:()=>go('dashboard')},
+    {label:'Instruments',icon:'file-text',action:()=>go('instruments')},
+    {label:'Institutions',icon:'building-2',action:()=>go('institutions'),roles:['admin','auditor','approver','scrutiny']},
+    {label:'Bank Verification',icon:'shield-check',action:()=>go('bankverify')},
+    {label:'Bulk Upload',icon:'upload',action:()=>go('bulk'),roles:['institution','admin']},
+    {label:'Admin Console',icon:'settings',action:()=>go('admin'),roles:['admin']},
+    {label:'Audit Trail',icon:'scroll-text',action:()=>go('audit'),roles:['admin','auditor','approver']},
+    {label:'New FDR Submission',icon:'plus-circle',action:()=>go('create'),roles:['institution','admin']},
+    {label:'Judge Info',icon:'graduation-cap',action:openJudgeInfo},
+    {label:'Toggle Theme',icon:'sun',action:toggleTheme},
+    {label:'Logout',icon:'log-out',action:logout}
+  ];
+  for(const p of pages){ if(p.roles&&!p.roles.includes(state.user.role)) continue; items.push({category:'Navigation',...p}); }
+  for(const i of visibleInstruments()) items.push({category:'Instruments',label:i.reference,sub:`${getInst(i.institution_id)?.code} · ${i.bank} · ${fmtCompact(i.amount)}`,icon:'file-text',action:()=>go('instrument-detail',i.id)});
+  if(q){
+    for(const d of DB.documents){
+      const inst=getInstr(d.instrument_id);
+      if(!inst||!canAccess(inst)) continue;
+      const matching=DB.extracted_fields.filter(e=>e.document_id===d.id&&String(e.extracted_value).toLowerCase().includes(q));
+      for(const m of matching) items.push({category:'Extracted Text',label:`${m.field_name}: ${m.extracted_value}`,sub:`From ${inst.reference} · ${Math.round(m.confidence*100)}% confidence`,icon:'scan-text',action:()=>go('instrument-detail',inst.id)});
+    }
+  }
+  if(!q) return items.slice(0,14);
+  return items.filter(i=>(i.label||'').toLowerCase().includes(q)||(i.sub||'').toLowerCase().includes(q)).slice(0,14);
+}
+function renderPalette(){
+  const items=getPaletteItems(state.paletteQuery);
+  const grouped={}; items.forEach(i=>{(grouped[i.category]=grouped[i.category]||[]).push(i);});
+  document.getElementById('paletteRoot').innerHTML=`<div class="fixed inset-0 z-[70] bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm animate-fade-in flex items-start justify-center pt-[12vh] px-4" id="paletteBackdrop"><div class="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in"><div class="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800"><i data-lucide="search" class="w-4 h-4 text-slate-400"></i><input id="paletteInput" placeholder="Search pages, instruments, extracted text…" class="flex-1 bg-transparent outline-none text-sm placeholder-slate-400" value="${esc(state.paletteQuery)}" autocomplete="off"><kbd class="hidden sm:inline-flex px-1.5 py-0.5 text-[10px] font-mono border border-slate-200 dark:border-slate-700 rounded text-slate-400">ESC</kbd></div><div class="max-h-[55vh] overflow-y-auto py-2">${items.length===0?'<div class="px-4 py-8 text-center text-sm text-slate-500">No results</div>':Object.entries(grouped).map(([cat,its])=>`<div class="px-2"><div class="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">${cat}</div>${its.map((it,idx)=>`<button data-action="${idx}" data-cat="${esc(cat)}" class="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition text-left"><div class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><i data-lucide="${it.icon}" class="w-3.5 h-3.5 text-slate-600 dark:text-slate-300"></i></div><div class="min-w-0 flex-1"><div class="font-medium truncate">${esc(it.label)}</div>${it.sub?`<div class="text-xs text-slate-500 truncate">${esc(it.sub)}</div>`:''}</div><i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-300"></i></button>`).join('')}</div>`).join('')}</div></div></div>`;
+  refreshIcons();
+  const input=document.getElementById('paletteInput');
+  if(input) input.addEventListener('input',e=>{state.paletteQuery=e.target.value;renderPalette();});
+  document.querySelectorAll('[data-cat]').forEach(btn=>btn.addEventListener('click',()=>{const cat=btn.dataset.cat,idx=+btn.dataset.action;closePalette();grouped[cat][idx].action();}));
+  const bd=document.getElementById('paletteBackdrop');
+  if(bd) bd.addEventListener('click',e=>{if(e.target.id==='paletteBackdrop')closePalette();});
+}
+
+/* ═══ THEME ═══ */
+function toggleTheme(){ state.dark=!state.dark; localStorage.setItem('fdr_dark',state.dark?'1':'0'); applyTheme(); render(); }
+function applyTheme(){ document.documentElement.classList.toggle('dark',state.dark); }
+function go(page,param=null){ state.page=page; state.param=param; if(page==='instrument-detail') state.tab='overview'; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+/* ═══ RENDER ═══ */
+function renderPage(){
+  try{
+    switch(state.page){
+      case 'dashboard': return viewDashboard();
+      case 'instruments': return viewInstruments();
+      case 'instrument-detail': return viewInstrumentDetail(state.param);
+      case 'institutions': return viewInstitutions();
+      case 'bankverify': return viewBankVerify();
+      case 'bulk': return viewBulk();
+      case 'admin': return viewAdmin();
+      case 'audit': return viewAudit();
+      case 'create': return viewCreate();
+      case 'replace': return viewReplace(state.param);
+      default: return viewDashboard();
+    }
+  }catch(e){
+    console.error('Render error:',e);
+    return `<div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl p-6 max-w-2xl mx-auto"><div class="flex items-center gap-2 mb-2"><i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i><h3 class="font-bold text-rose-700">Something went wrong</h3></div><p class="text-sm text-rose-600 mb-3 font-mono">${esc(e.message)}</p><button onclick="location.reload()" class="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium">Reload</button></div>`;
+  }
+}
+function render(){
+  try{
+    if(!state.user){ renderLogin(); return; }
+    const app=document.getElementById('app');
+    if(!app) return;
+    app.innerHTML=`<div class="flex min-h-screen">${renderSidebar()}<div class="flex-1 flex flex-col min-w-0">${renderTopbar()}<main class="flex-1 p-6 lg:p-8 max-w-[1600px] w-full mx-auto animate-fade-in" id="pageContent"><div class="print-header"><h1>FDR Sentinel — Official Report</h1><p>Generated ${new Date().toLocaleString('en-GB')} · ${esc(state.user.full_name)} (${esc(state.user.role)}) · Confidential</p></div>${renderPage()}</main></div>${renderMobileNav()}</div>`;
+    refreshIcons();
+    setTimeout(()=>{
+      if(state.page==='create') attachCreateForm();
+      if(state.page==='replace') attachReplaceForm(state.param);
+      if(state.page==='bulk') attachBulkForm();
+      document.querySelectorAll('[data-counter]').forEach(el=>{const target=+el.dataset.counter;const format=el.dataset.format||'money';const suffix=el.dataset.suffix||'';animateNumber(el,target,{format,suffix});});
+    },30);
+  }catch(e){
+    console.error('Fatal:',e);
+    const app=document.getElementById('app');
+    if(app) app.innerHTML=`<div class="min-h-screen flex items-center justify-center p-6"><div class="bg-rose-50 border border-rose-200 rounded-xl p-8 max-w-md text-center"><i data-lucide="alert-octagon" class="w-12 h-12 text-rose-600 mx-auto mb-3"></i><h2 class="text-lg font-bold text-rose-700 mb-1">App error</h2><p class="text-sm text-rose-600 mb-4 font-mono break-all">${esc(e.message)}</p><button onclick="localStorage.clear();location.reload()" class="px-4 py-2 bg-rose-600 text-white rounded-lg">Reset</button></div></div>`;
+    refreshIcons();
+  }
+}
+function renderSidebar(){
+  const items=[
+    {key:'dashboard',label:'Dashboard',icon:'layout-dashboard'},
+    {key:'instruments',label:'Instruments',icon:'file-text'},
+    {key:'institutions',label:'Institutions',icon:'building-2',roles:['admin','auditor','approver','scrutiny']},
+    {key:'bankverify',label:'Bank Verification',icon:'shield-check'},
+    {key:'bulk',label:'Bulk Upload',icon:'upload',roles:['institution','admin']},
+    {key:'admin',label:'Admin Console',icon:'settings',roles:['admin']},
+    {key:'audit',label:'Audit Trail',icon:'scroll-text',roles:['admin','auditor','approver']}
+  ];
+  const activeKey=['instrument-detail','create','replace'].includes(state.page)?'instruments':state.page;
+  return `<aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0"><div class="px-5 py-5 border-b border-slate-100 dark:border-slate-800"><div class="flex items-center gap-2.5"><div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold shadow-lg shadow-brand-500/20"><i data-lucide="shield-check" class="w-5 h-5"></i></div><div><div class="font-bold text-sm leading-tight">FDR Sentinel</div><div class="text-[10px] text-slate-500 tracking-wider uppercase">AICTE · Prototype</div></div></div></div><nav class="flex-1 p-3 space-y-0.5 overflow-y-auto"><div class="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Workspace</div>${items.filter(i=>!i.roles||i.roles.includes(state.user.role)).map(i=>{const active=activeKey===i.key;return `<button onclick="go('${i.key}')" class="relative w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${active?'bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300 font-medium nav-item-active':'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}"><i data-lucide="${i.icon}" class="w-4 h-4"></i><span>${i.label}</span>${active?'<div class="ml-auto w-1.5 h-1.5 rounded-full bg-brand-500"></div>':''}</button>`;}).join('')}</nav><div class="p-3 border-t border-slate-100 dark:border-slate-800 space-y-1"><button onclick="openPalette()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="search" class="w-4 h-4"></i><span>Search</span><kbd class="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400">⌘K</kbd></button><button onclick="openJudgeInfo()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="graduation-cap" class="w-4 h-4"></i><span>Judge Info</span></button><button onclick="window.print()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="printer" class="w-4 h-4"></i><span>Print</span></button><button onclick="toggleTheme()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="${state.dark?'sun':'moon'}" class="w-4 h-4"></i><span>${state.dark?'Light mode':'Dark mode'}</span></button><button onclick="wipe()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="refresh-cw" class="w-4 h-4"></i><span>Reset demo</span></button><button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="log-out" class="w-4 h-4"></i><span>Sign out</span></button></div><div class="p-3 border-t border-slate-100 dark:border-slate-800"><div class="flex items-center gap-2.5 px-2 py-2">${avatar(state.user,'md')}<div class="min-w-0 flex-1"><div class="text-xs font-medium truncate">${esc(state.user.full_name)}</div><div class="text-[10px] text-slate-500 uppercase tracking-wider truncate">${esc(state.user.role)}</div></div></div></div></aside>`;
+}
+function renderMobileNav(){
+  const items=[
+    {key:'dashboard',label:'Home',icon:'layout-dashboard'},
+    {key:'instruments',label:'FDRs',icon:'file-text'},
+    {key:'bankverify',label:'Verify',icon:'shield-check'},
+    {key:'more',label:'More',icon:'menu'}
+  ];
+  const activeKey=['instrument-detail','create','replace'].includes(state.page)?'instruments':state.page;
+  return `<nav class="mobile-nav no-print fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-30 px-2 py-1.5"><div class="flex justify-around">${items.map(i=>{const active=activeKey===i.key;return `<button onclick="${i.key==='more'?'openMoreMenu()':`go('${i.key}')`}" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg ${active?'text-brand-600 dark:text-brand-400':'text-slate-500 dark:text-slate-400'}"><i data-lucide="${i.icon}" class="w-5 h-5"></i><span class="text-[10px] font-medium">${i.label}</span></button>`;}).join('')}</div></nav>`;
+}
+function openMoreMenu(){
+  const items=[
+    {key:'institutions',label:'Institutions',icon:'building-2',roles:['admin','auditor','approver','scrutiny']},
+    {key:'bulk',label:'Bulk Upload',icon:'upload',roles:['institution','admin']},
+    {key:'admin',label:'Admin Console',icon:'settings',roles:['admin']},
+    {key:'audit',label:'Audit Trail',icon:'scroll-text',roles:['admin','auditor','approver']},
+    {key:'create',label:'New FDR',icon:'plus-circle',roles:['institution','admin']}
+  ].filter(i=>!i.roles||i.roles.includes(state.user.role));
+  openModal({title:'Menu',icon:'menu',body:`<div class="space-y-2">${items.map(i=>`<button onclick="closeModal();go('${i.key}')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left"><i data-lucide="${i.icon}" class="w-4 h-4 text-slate-600 dark:text-slate-400"></i><span class="font-medium">${i.label}</span></button>`).join('')}<div class="border-t border-slate-200 dark:border-slate-800 pt-2 mt-2"><button onclick="closeModal();openJudgeInfo()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left"><i data-lucide="graduation-cap" class="w-4 h-4"></i><span class="font-medium">Judge Info</span></button><button onclick="closeModal();toggleTheme()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left"><i data-lucide="${state.dark?'sun':'moon'}" class="w-4 h-4"></i><span class="font-medium">${state.dark?'Light mode':'Dark mode'}</span></button><button onclick="closeModal();logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left"><i data-lucide="log-out" class="w-4 h-4"></i><span class="font-medium">Sign out</span></button></div></div>`,actions:`<button onclick="closeModal()" class="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-medium">Close</button>`});
+}
+function renderTopbar(){
+  const titles={dashboard:['Dashboard','Overview'],instruments:['Instruments','FDRs and security deposits'],'instrument-detail':['Instrument Detail','Evidence and lifecycle'],institutions:['Institutions','Health & compliance'],bankverify:['Bank Verification','Independent verification'],bulk:['Bulk Upload','Batch FDR submission'],admin:['Admin Console','Policy & system config'],audit:['Audit Trail','Hash-chained log'],create:['New Submission','Register new FDR'],replace:['Replace / Renew','Linked replacement']};
+  const[title,subtitle]=titles[state.page]||['Dashboard',''];
+  return `<header class="no-print h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-20"><div><h1 class="text-sm font-semibold">${esc(title)}</h1><p class="text-xs text-slate-500 hidden sm:block">${esc(subtitle)}</p></div><div class="flex items-center gap-2"><button onclick="openPalette()" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-slate-500 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition w-56"><i data-lucide="search" class="w-3.5 h-3.5"></i><span class="text-xs">Search…</span><kbd class="ml-auto text-[10px] font-mono opacity-60">⌘K</kbd></button><button onclick="openNotifications()" class="relative p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="bell" class="w-4 h-4"></i>${notificationsForUser(state.user.id).length>0?'<span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900"></span>':''}</button><button onclick="toggleTheme()" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="${state.dark?'sun':'moon'}" class="w-4 h-4"></i></button><div class="w-9 h-9 rounded-full hidden sm:flex items-center justify-center ml-1">${avatar(state.user,'md')}</div></div></header>`;
+}
+
+/* ═══ LOGIN ═══ */
+function renderLogin(){
+  const app=document.getElementById('app');
+  if(!app) return;
+  app.innerHTML=`<div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-slate-50 dark:bg-slate-950"><div class="absolute inset-0 bg-grid dark:opacity-50"></div><div class="absolute inset-0 bg-mesh opacity-70 dark:opacity-40"></div><div class="relative w-full max-w-md animate-fade-in"><div class="flex items-center justify-center gap-3 mb-8"><div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-xl shadow-brand-500/30"><i data-lucide="shield-check" class="w-6 h-6"></i></div><div><div class="font-bold text-lg leading-tight">FDR Sentinel</div><div class="text-[10px] text-slate-500 tracking-wider uppercase">AICTE · Regulation Bureau</div></div></div><div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-2xl p-8"><h1 class="text-2xl font-bold mb-1">Welcome back</h1><p class="text-sm text-slate-500 mb-6">Sign in to manage security deposits & FDRs</p><form id="loginForm" class="space-y-3"><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Username</label><input name="username" placeholder="Enter username" class="w-full mt-1 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Password</label><input name="password" type="password" placeholder="Enter password" class="w-full mt-1 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div><p id="loginErr" class="text-sm text-rose-600 min-h-[1.25rem]"></p><button class="btn-press w-full bg-brand-600 hover:bg-brand-700 text-white rounded-lg py-2.5 font-medium shadow-lg shadow-brand-500/20">Sign in</button></form><div class="relative my-6"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-800"></div></div><div class="relative flex justify-center text-xs"><span class="px-3 bg-white/80 dark:bg-slate-900/80 text-slate-500">Quick demo login</span></div></div><div class="grid grid-cols-2 gap-2">${[{u:'inst1',p:'inst123',role:'Institution'},{u:'scrutiny1',p:'scr123',role:'Scrutiny'},{u:'approver1',p:'app123',role:'Approver'},{u:'auditor1',p:'aud123',role:'Auditor'},{u:'inst2',p:'inst123',role:'Institution B'},{u:'admin',p:'admin123',role:'Admin'}].map(({u,p,role})=>`<button type="button" onclick="quickLogin('${u}','${p}')" class="btn-press text-left px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-brand-400 hover:bg-brand-50/50 transition"><div class="text-xs font-semibold">${role}</div><div class="text-[10px] font-mono text-slate-500 mt-0.5">${u}</div></button>`).join('')}</div></div><p class="text-center text-[11px] text-slate-400 mt-6">Prototype · Synthetic demo data · Not affiliated with AICTE</p></div></div>`;
+  refreshIcons();
+  const f=document.getElementById('loginForm');
+  if(f) f.addEventListener('submit',e=>{e.preventDefault();const fd=new FormData(e.target);if(login(fd.get('username'),fd.get('password'))){state.page='dashboard';render();}else{const err=document.getElementById('loginErr');if(err) err.textContent='Invalid credentials';}});
+}
+function quickLogin(u,p){ if(login(u,p)){state.page='dashboard';render();} }
+
+/* ═══ DASHBOARD VIEW ═══ */
+function viewDashboard(){
+  const insts=visibleInstruments();
+  const active=insts.filter(i=>i.lifecycle_status==='active');
+  const expiring30=active.filter(i=>i.maturity_date&&daysFrom(i.maturity_date)>=0&&daysFrom(i.maturity_date)<=30);
+  const matured=active.filter(i=>i.maturity_date&&daysFrom(i.maturity_date)<0);
+  const atRisk60=active.filter(i=>i.maturity_date&&daysFrom(i.maturity_date)>=0&&daysFrom(i.maturity_date)<=60).reduce((s,i)=>s+(+i.amount||0),0);
+  const verified=insts.filter(i=>bankVerifFor(i.id).some(b=>b.status==='verified'));
+  const visIds=insts.map(i=>i.id);
+  const pendingF=DB.findings.filter(f=>f.review_status==='pending'&&visIds.includes(f.instrument_id)).length;
+  const releaseAwaiting=DB.release_cases.filter(r=>insts.some(i=>i.id===r.instrument_id)&&r.status==='submitted').length;
+  const queue=active.filter(i=>i.maturity_date&&daysFrom(i.maturity_date)<=60).sort((a,b)=>daysFrom(a.maturity_date)-daysFrom(b.maturity_date));
+  return `<div class="space-y-5">${heroBanner(insts,active,verified,atRisk60)}${riskExposureGrid(active)}<div class="grid lg:grid-cols-5 gap-4"><div class="lg:col-span-3">${institutionLeaderboard()}</div><div class="lg:col-span-2">${liveActivityFeed()}</div></div><div class="grid lg:grid-cols-5 gap-4"><div class="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"><div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between"><div><div class="text-sm font-semibold flex items-center gap-2"><i data-lucide="list-todo" class="w-4 h-4 text-amber-500"></i> Action Queue ${queue.length>0?`<span class="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full font-mono">${queue.length}</span>`:''}</div><div class="text-xs text-slate-500">Instruments maturing within 60 days</div></div><button onclick="go('instruments')" class="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium">View all →</button></div>${queue.length===0?emptyState('check-circle-2','All clear','No instruments maturing in the next 60 days.'):`<div class="divide-y divide-slate-100 dark:divide-slate-800">${queue.slice(0,5).map(q=>{const d=daysFrom(q.maturity_date);const urgent=d<0?'rose':d<=15?'amber':'slate';return `<button onclick="go('instrument-detail',${q.id})" class="w-full px-5 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition text-left"><div class="w-1 h-10 rounded-full bg-${urgent}-500 flex-shrink-0"></div><div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="font-mono text-sm font-semibold">${esc(q.reference)}</span>${pill(urgent==='rose'?'Overdue':urgent==='amber'?'Urgent':'Notice',urgent)}</div><div class="text-xs text-slate-500 mt-0.5">${esc(getInst(q.institution_id)?.code)} · ${esc(q.bank)} · ${fmtDate(q.maturity_date)}</div></div><div class="text-right flex-shrink-0"><div class="text-sm font-mono font-semibold">${fmtCompact(q.amount)}</div><div class="text-xs ${urgent==='rose'?'text-rose-600 font-semibold':urgent==='amber'?'text-amber-600':'text-slate-500'}">${d<0?`${-d}d overdue`:`${d}d left`}</div></div><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></button>`;}).join('')}</div>`}</div><div class="lg:col-span-2">${todayFocus(expiring30,matured,pendingF,releaseAwaiting)}</div></div></div>`;
+}
+
+/* ═══ INSTRUMENTS ═══ */
+let instrFilter={q:'',status:'all'};
+function viewInstruments(){
+  let list=[...visibleInstruments()];
+  if(instrFilter.q){const q=instrFilter.q.toLowerCase();list=list.filter(i=>i.reference.toLowerCase().includes(q)||i.bank.toLowerCase().includes(q));}
+  if(instrFilter.status!=='all') list=list.filter(i=>i.lifecycle_status===instrFilter.status);
+  list.sort((a,b)=>(a.maturity_date||'').localeCompare(b.maturity_date||''));
+  const canCreate=['institution','admin'].includes(state.user.role);
+  return `<div class="space-y-5"><div class="flex items-start justify-between flex-wrap gap-4"><div><h2 class="text-2xl font-bold tracking-tight">Instruments</h2><p class="text-sm text-slate-500 mt-1">${list.length} instrument${list.length===1?'':'s'}</p></div>${canCreate?`<div class="flex gap-2"><button onclick="go('bulk')" class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm font-medium"><i data-lucide="upload" class="w-4 h-4"></i> Bulk Upload</button><button onclick="go('create')" class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-lg shadow-brand-500/20"><i data-lucide="plus" class="w-4 h-4"></i> New Submission</button></div>`:''}</div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-3 flex flex-wrap items-center gap-2"><div class="flex items-center gap-2 flex-1 min-w-[200px] px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800"><i data-lucide="search" class="w-3.5 h-3.5 text-slate-400"></i><input id="instrSearch" placeholder="Search by reference or bank…" value="${esc(instrFilter.q)}" class="flex-1 bg-transparent text-sm outline-none placeholder-slate-400"></div><select id="instrStatus" class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm outline-none">${['all','active','released','replaced'].map(s=>`<option value="${s}" ${instrFilter.status===s?'selected':''}>${s==='all'?'All statuses':s}</option>`).join('')}</select></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">${list.length===0?emptyState('file-x','No instruments found','Try adjusting filters.'):`<div class="overflow-x-auto"><table class="w-full"><thead class="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800"><tr class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider"><th class="py-3 px-5">Reference</th><th class="py-3 px-3">Institution</th><th class="py-3 px-3">Bank</th><th class="py-3 px-3 text-right">Amount</th><th class="py-3 px-3">Maturity</th><th class="py-3 px-3">Verification</th><th class="py-3 px-3">Status</th><th class="py-3 px-3">Findings</th><th class="py-3 px-5"></th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">${list.map(i=>{const fs=findingsFor(i.id).filter(f=>f.review_status==='pending').length;const d=i.maturity_date?daysFrom(i.maturity_date):null;const bv=bankVerifFor(i.id).some(b=>b.status==='verified');const hasExtracted=docsFor(i.id).length>0;const vstate=bv?'verified':hasExtracted?'extracted':'submitted';return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer group" onclick="go('instrument-detail',${i.id})"><td class="py-3.5 px-5"><div class="flex items-center gap-2"><span class="font-mono text-sm font-semibold">${esc(i.reference)}</span>${i.linked_instrument_id?`<i data-lucide="link-2" class="w-3 h-3 text-slate-400"></i>`:''}</div></td><td class="py-3.5 px-3 text-sm text-slate-600 dark:text-slate-400">${esc(getInst(i.institution_id)?.code||'—')}</td><td class="py-3.5 px-3 text-sm">${esc(i.bank)}</td><td class="py-3.5 px-3 text-sm font-mono text-right font-medium">${fmtMoney(i.amount)}</td><td class="py-3.5 px-3 text-sm"><div>${fmtDateShort(i.maturity_date)}</div>${d!==null&&i.lifecycle_status==='active'?`<div class="text-[10px] ${d<0?'text-rose-500':d<=30?'text-amber-500':'text-slate-400'}">${d<0?`${-d}d overdue`:`${d}d left`}</div>`:''}</td><td class="py-3.5 px-3">${verificationBadge(vstate)}</td><td class="py-3.5 px-3">${statusPill(i.lifecycle_status)}</td><td class="py-3.5 px-3">${fs>0?`<span class="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-medium"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>${fs}</span>`:'<span class="text-xs text-slate-400">—</span>'}</td><td class="py-3.5 px-5 text-right"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 inline group-hover:text-brand-500"></i></td></tr>`;}).join('')}</tbody></table></div>`}</div></div>`;
+}
+document.addEventListener('input',e=>{if(e.target.id==='instrSearch'){instrFilter.q=e.target.value;go('instruments');setTimeout(()=>{const inp=document.getElementById('instrSearch');if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}},0);}});
+document.addEventListener('change',e=>{if(e.target.id==='instrStatus'){instrFilter.status=e.target.value;go('instruments');}});
+
+/* ═══ INSTITUTIONS ═══ */
+function viewInstitutions(){
+  return `<div class="space-y-5"><div><h2 class="text-2xl font-bold tracking-tight">Institutions</h2><p class="text-sm text-slate-500 mt-1">Health scores and compliance overview</p></div><div class="grid lg:grid-cols-3 md:grid-cols-2 gap-4">${DB.institutions.map(inst=>{const hs=healthScore(inst.id);const myInsts=DB.instruments.filter(i=>i.institution_id===inst.id);const total=myInsts.reduce((s,i)=>s+(+i.amount||0),0);const gradeColor=['A+','A'].includes(hs.grade)?'text-emerald-600':hs.grade==='B'?'text-amber-600':'text-rose-600';const gradeBg=['A+','A'].includes(hs.grade)?'bg-emerald-50 dark:bg-emerald-950/40':hs.grade==='B'?'bg-amber-50 dark:bg-amber-950/40':'bg-rose-50 dark:bg-rose-950/40';return `<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 card-lift"><div class="flex items-start justify-between mb-3"><div class="min-w-0"><div class="font-semibold truncate">${esc(inst.name)}</div><div class="text-xs text-slate-500 font-mono">${esc(inst.code)} · ${esc(inst.state)}</div></div><div class="w-12 h-12 rounded-xl ${gradeBg} flex items-center justify-center flex-shrink-0"><span class="text-lg font-bold ${gradeColor}">${hs.grade}</span></div></div><div class="flex items-center justify-between mb-3"><div><div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Health Score</div><div class="text-xl font-bold font-mono ${gradeColor}">${hs.overall}/100</div></div><div class="text-right"><div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Total</div><div class="text-sm font-mono font-semibold">${fmtCompact(total)}</div></div></div><div class="space-y-1.5 mb-3">${hs.dims.map(d=>`<div><div class="flex justify-between text-[10px] mb-0.5"><span class="text-slate-500">${esc(d.label)}</span><span class="font-mono">${d.value}</span></div><div class="h-1 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full transition-all" style="width:${d.value}%;background:${d.color}"></div></div></div>`).join('')}</div><div class="flex gap-2 text-[10px] flex-wrap"><span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">${myInsts.length} instruments</span><span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">${hs.verified} verified</span>${hs.expiring>0?`<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">${hs.expiring} expiring</span>`:''}</div><button onclick="go('instruments')" class="btn-press mt-3 w-full px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium hover:bg-brand-50 dark:hover:bg-brand-950/30 transition">View instruments →</button></div>`;}).join('')}</div></div>`;
+}
+
+/* ═══ BANK VERIFY ═══ */
+function viewBankVerify(){
+  const insts=visibleInstruments();
+  const bvs=DB.bank_verifications.filter(b=>insts.some(i=>i.id===b.instrument_id));
+  const unverified=insts.filter(i=>!bankVerifFor(i.id).some(b=>b.status==='verified'));
+  return `<div class="space-y-5"><div><h2 class="text-2xl font-bold tracking-tight">Bank Verification</h2><p class="text-sm text-slate-500 mt-1">Independent confirmation of FDR details</p></div><div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl p-4 flex items-start gap-3"><i data-lucide="info" class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"></i><div class="text-sm"><div class="font-semibold text-amber-800 dark:text-amber-300">Simulated verification — not connected to real bank APIs</div><div class="text-amber-700 dark:text-amber-400 text-xs mt-0.5">Production would call authorized bank verification services (NEFT, e-Sign). Simulator honestly labels outcomes.</div></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4"><div class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Total</div><div class="text-2xl font-bold font-mono">${bvs.length}</div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-900 shadow-sm p-4"><div class="text-[10px] text-emerald-600 uppercase tracking-wider font-semibold">Verified</div><div class="text-2xl font-bold font-mono text-emerald-600">${bvs.filter(b=>b.status==='verified').length}</div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-900 shadow-sm p-4"><div class="text-[10px] text-amber-600 uppercase tracking-wider font-semibold">Pending</div><div class="text-2xl font-bold font-mono text-amber-600">${bvs.filter(b=>b.status==='pending').length}</div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-rose-200 dark:border-rose-900 shadow-sm p-4"><div class="text-[10px] text-rose-600 uppercase tracking-wider font-semibold">Failed</div><div class="text-2xl font-bold font-mono text-rose-600">${bvs.filter(b=>b.status==='failed'||b.status==='mismatch').length}</div></div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"><div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800"><div class="text-sm font-semibold">Available for Verification</div><div class="text-xs text-slate-500">Instruments without bank confirmation</div></div><div class="divide-y divide-slate-100 dark:divide-slate-800">${unverified.length===0?'<div class="px-5 py-8 text-sm text-slate-500 text-center">All instruments verified ✓</div>':unverified.map(i=>`<div class="px-5 py-3 flex items-center justify-between gap-3"><div class="min-w-0 flex-1"><div class="font-mono text-sm font-semibold">${esc(i.reference)}</div><div class="text-xs text-slate-500">${esc(getInst(i.institution_id)?.code)} · ${esc(i.bank)} · ${fmtMoney(i.amount)}</div></div><button onclick="runBankVerification(${i.id})" class="btn-press px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3 h-3"></i> Verify</button></div>`).join('')}</div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"><div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800"><div class="text-sm font-semibold">Verification History</div></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800"><tr class="text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider"><th class="py-2 px-4">Ref</th><th class="py-2 px-3">Instrument</th><th class="py-2 px-3">Bank</th><th class="py-2 px-3">Status</th><th class="py-2 px-3">Evidence</th><th class="py-2 px-4">Time</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">${bvs.length===0?'<tr><td colspan="6" class="py-8 text-center text-slate-500">No verifications yet</td></tr>':[...bvs].sort((a,b)=>(b.verified_at||'').localeCompare(a.verified_at||'')).map(b=>{const inst=getInstr(b.instrument_id);return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30"><td class="py-2 px-4 font-mono text-xs">${esc(b.reference)}</td><td class="py-2 px-3 text-xs">${esc(inst?.reference||'—')}</td><td class="py-2 px-3 text-xs">${esc(b.bank)}</td><td class="py-2 px-3">${statusPill(b.status)}</td><td class="py-2 px-3 text-[10px] font-mono text-slate-500">${esc(b.evidence_ref||'—')}</td><td class="py-2 px-4 text-xs text-slate-500 whitespace-nowrap">${timeAgo(b.verified_at)}</td></tr>`;}).join('')}</tbody></table></div></div></div>`;
+}
+async function runBankVerification(iid){
+  const inst=getInstr(iid);
+  openModal({title:'Simulating bank verification…',icon:'shield-check',body:`<div class="flex flex-col items-center py-8 gap-3"><div class="w-12 h-12 rounded-full border-4 border-brand-200 dark:border-brand-900 border-t-brand-600 spin"></div><div class="text-sm text-slate-600 dark:text-slate-400">Calling simulated bank API for <span class="font-mono font-semibold">${esc(inst?.reference||'')}</span></div><div class="text-xs text-slate-400">Production would call NEFT/RTGS verification</div></div>`,actions:''});
+  await sleep(1600);
+  closeModal();
+  const bv=await simulateBankVerification(iid);
+  if(bv){if(bv.status==='verified') toast('Bank verification successful','ok',{desc:bv.notes});else if(bv.status==='mismatch') toast('Mismatch detected by bank','error',{desc:bv.notes});else toast('Bank API failed','warn',{desc:bv.notes});}
+  render();
+}
+
+/* ═══ BULK UPLOAD ═══ */
+function viewBulk(){
+  const institutions=state.user.role==='admin'?DB.institutions:DB.institutions.filter(i=>i.id===state.user.institution_id);
+  return `<div class="max-w-5xl mx-auto space-y-5"><button onclick="go('instruments')" class="inline-flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"><div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800"><h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="upload" class="w-5 h-5 text-brand-500"></i> Bulk Upload</h2><p class="text-sm text-slate-500 mt-0.5">Upload CSV manifest + multiple FDR documents in one go</p></div><form id="bulkForm" class="p-6 space-y-5"><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Institution</label><select name="institution_id" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required><option value="">Select…</option>${institutions.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select></div><div class="bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-900 rounded-xl p-4"><div class="flex items-start gap-3"><i data-lucide="file-spreadsheet" class="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5"></i><div class="flex-1"><div class="text-sm font-semibold text-brand-800 dark:text-brand-300 mb-1">CSV Manifest Format</div><div class="text-xs text-brand-700 dark:text-brand-400 mb-2">Columns: reference, bank, amount, issue_date, maturity_date, filename</div><button type="button" onclick="downloadSampleCSV()" class="text-xs bg-white dark:bg-slate-900 border border-brand-200 dark:border-brand-800 rounded px-2 py-1 font-medium hover:bg-brand-100">Download sample CSV</button></div></div></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">1. Upload CSV Manifest</label><input id="csvInput" name="csv" type="file" accept=".csv" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm" required></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">2. Upload FDR Documents (multiple)</label><input id="docsInput" name="docs" type="file" accept="image/*" multiple class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm"></div><div id="bulkPreview" class="hidden"></div><div class="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800"><button type="button" onclick="go('instruments')" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button type="submit" class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-lg shadow-brand-500/20"><i data-lucide="upload" class="w-4 h-4"></i> Process Upload</button></div></form></div></div>`;
+}
+function downloadSampleCSV(){
+  const rows=[['reference','bank','amount','issue_date','maturity_date','filename'],['FDR-2025-201','SBI','500000','2024-04-01','2025-04-01','fdr201.png'],['FDR-2025-202','HDFC','250000','2024-06-15','2025-06-15','fdr202.png']];
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='fdr-bulk-template.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('Template downloaded','ok');
+}
+function attachBulkForm(){
+  const form=document.getElementById('bulkForm'); if(!form) return;
+  const csvInput=document.getElementById('csvInput'),docsInput=document.getElementById('docsInput'),preview=document.getElementById('bulkPreview');
+  async function updatePreview(){
+    const csv=csvInput.files[0],docs=docsInput.files;
+    if(!csv||!docs||docs.length===0){preview.classList.add('hidden');return;}
+    const text=await csv.text();
+    const lines=text.split('\n').filter(l=>l.trim());
+    const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+    const rows=lines.slice(1).map(l=>{const vals=l.split(',').map(v=>v.replace(/^"|"$/g,'').trim());const obj={};headers.forEach((h,i)=>obj[h]=vals[i]);return obj;});
+    const docsByName={}; for(const d of docs) docsByName[d.name]=d;
+    preview.classList.remove('hidden');
+    preview.innerHTML=`<div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4"><div class="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">Preview (${rows.length} rows · ${docs.length} files)</div><div class="space-y-1.5 max-h-64 overflow-y-auto">${rows.map(r=>{const hasFile=docsByName[r.filename];return `<div class="flex items-center justify-between text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5"><div><span class="font-mono font-semibold">${esc(r.reference)}</span> · ${esc(r.bank)} · ${fmtMoney(r.amount)}</div><div>${hasFile?`<span class="text-emerald-600 flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> ${esc(r.filename)}</span>`:`<span class="text-slate-400 flex items-center gap-1"><i data-lucide="circle" class="w-3 h-3"></i> No file</span>`}</div></div>`;}).join('')}</div></div>`;
+    refreshIcons();
+  }
+  csvInput.addEventListener('change',updatePreview);
+  docsInput.addEventListener('change',updatePreview);
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const fd=new FormData(form);
+    const csv=csvInput.files[0];
+    if(!csv){toast('Please upload CSV','error');return;}
+    const text=await csv.text();
+    const lines=text.split('\n').filter(l=>l.trim());
+    const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+    const rows=lines.slice(1).map(l=>{const vals=l.split(',').map(v=>v.replace(/^"|"$/g,'').trim());const obj={};headers.forEach((h,i)=>obj[h]=vals[i]);return obj;});
+    let success=0,failed=0;
+    for(const row of rows){
+      if(!row.reference||!row.bank||!row.amount||!row.issue_date||!row.maturity_date){failed++;continue;}
+      const checksum=await sha256(row.reference+row.amount+Math.random());
+      const extracted={reference:row.reference,amount:String(row.amount),issue_date:toDDMMYYYY(row.issue_date),maturity_date:toDDMMYYYY(row.maturity_date)};
+      await createInstrument({institution_id:fd.get('institution_id'),reference:row.reference,bank:row.bank,amount:row.amount,issue_date:row.issue_date,maturity_date:row.maturity_date,filename:row.filename||'bulk.csv',checksum,extracted});
+      success++;
+    }
+    await audit('bulk.upload','system',0,null,null,{count:success,failed});
+    toast(`Bulk upload complete`,`${failed>0?'warn':'ok'}`,{desc:`${success} created, ${failed} skipped`});
+    go('instruments');
+  });
+}
+
+/* ═══ ADMIN ═══ */
+function viewAdmin(){
+  return `<div class="space-y-5"><div><h2 class="text-2xl font-bold tracking-tight">Admin Console</h2><p class="text-sm text-slate-500 mt-1">Policy, impact model, sources, configuration</p></div><div class="grid lg:grid-cols-2 gap-4"><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6"><div class="flex items-center justify-between mb-3"><h3 class="font-semibold flex items-center gap-2"><i data-lucide="book-open" class="w-4 h-4 text-brand-500"></i> Policy Source</h3><button onclick="openJudgeInfo()" class="text-xs text-brand-600 hover:underline">View detail</button></div><div class="text-sm space-y-2"><div class="font-medium">${esc(POLICY_SOURCE.handbook)} ${esc(POLICY_SOURCE.edition)}</div><div class="text-xs text-slate-500">${esc(POLICY_SOURCE.clause)}</div><div class="text-xs text-slate-500 italic">${esc(POLICY_SOURCE.disclaimer)}</div></div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6"><div class="flex items-center justify-between mb-3"><h3 class="font-semibold flex items-center gap-2"><i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i> Impact Model</h3><button onclick="openJudgeInfo()" class="text-xs text-brand-600 hover:underline">View detail</button></div><div class="grid grid-cols-2 gap-3"><div><div class="text-[10px] text-slate-500 uppercase">Hours Saved/Mo</div><div class="text-xl font-bold font-mono text-emerald-600">${Math.round(IMPACT_MODEL.institutionCount*IMPACT_MODEL.avgInstrumentsPerInst*(IMPACT_MODEL.currentMinutesPerInstrumentPerMonth-IMPACT_MODEL.newMinutesPerInstrumentPerMonth)/60).toLocaleString('en-IN')}</div></div><div><div class="text-[10px] text-slate-500 uppercase">Effort Reduction</div><div class="text-xl font-bold font-mono text-brand-600">${Math.round((1-IMPACT_MODEL.newMinutesPerInstrumentPerMonth/IMPACT_MODEL.currentMinutesPerInstrumentPerMonth)*100)}%</div></div></div><div class="text-[10px] text-slate-500 mt-2 italic">${esc(IMPACT_MODEL.caveat)}</div></div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6"><h3 class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-brand-500"></i> Policy Requirements</h3><p class="text-xs text-slate-500 mb-4">Version ${esc(DB.policy.version)} · Effective ${esc(DB.policy.effective_from)}</p><div class="space-y-2">${DB.policy.requirements.map(r=>`<div class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0"></i><div class="flex-1"><div class="text-sm font-medium">${esc(r.label)}</div><div class="text-xs text-slate-500">${esc(r.description)}</div></div></div>`).join('')}</div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6"><h3 class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="git-branch" class="w-4 h-4 text-amber-500"></i> Policy History</h3><div class="space-y-2 mt-3">${(DB.policy.history||[]).map((h,i)=>`<div class="flex items-start gap-3 p-3 rounded-lg ${i===0?'bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900':'bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800'}"><div class="w-8 h-8 rounded-lg ${i===0?'bg-emerald-500 text-white':'bg-slate-300 dark:bg-slate-600 text-slate-700'} flex items-center justify-center flex-shrink-0"><i data-lucide="${i===0?'check':'history'}" class="w-4 h-4"></i></div><div class="flex-1"><div class="text-sm font-medium">${esc(h.version)} <span class="text-xs text-slate-500">· ${esc(h.date)}</span>${i===0?' <span class="text-[10px] bg-emerald-500 text-white px-1.5 py-0.5 rounded">ACTIVE</span>':''}</div><div class="text-xs text-slate-500">${esc(h.changes)}</div></div></div>`).join('')}</div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6"><h3 class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="git-merge" class="w-4 h-4 text-brand-500"></i> Escalation Matrix</h3><div class="space-y-2 mt-3">${DB.policy.escalation_matrix.map(e=>`<div class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800"><div class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-950 flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold text-amber-600">L${e.level}</span></div><div class="flex-1"><div class="text-sm font-medium">${esc(e.label)}</div><div class="text-xs text-slate-500">${e.days} days before maturity → ${esc(e.role)}</div></div></div>`).join('')}</div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6"><h3 class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="database" class="w-4 h-4 text-brand-500"></i> System Data</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3"><div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50"><div class="text-[10px] text-slate-500 uppercase font-semibold">Instruments</div><div class="text-xl font-bold font-mono">${DB.instruments.length}</div></div><div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50"><div class="text-[10px] text-slate-500 uppercase font-semibold">Documents</div><div class="text-xl font-bold font-mono">${DB.documents.length}</div></div><div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50"><div class="text-[10px] text-slate-500 uppercase font-semibold">Audit Events</div><div class="text-xl font-bold font-mono">${DB.audit_events.length}</div></div><div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50"><div class="text-[10px] text-slate-500 uppercase font-semibold">Verifications</div><div class="text-xl font-bold font-mono">${DB.bank_verifications.length}</div></div></div><button onclick="wipe()" class="mt-4 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-medium border border-rose-200 dark:border-rose-900 hover:bg-rose-100">Reset demo data</button></div></div>`;
+}
+
+/* ═══ INSTRUMENT DETAIL ═══ */
+function viewInstrumentDetail(id){
+  const i=getInstr(id);
+  if(!i) return emptyState('alert-triangle','Instrument not found','');
+  if(!canAccess(i)) return `<div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl p-8 max-w-2xl mx-auto text-center"><div class="w-16 h-16 rounded-2xl bg-rose-100 dark:bg-rose-950 mx-auto flex items-center justify-center mb-4"><i data-lucide="shield-alert" class="w-8 h-8 text-rose-600 dark:text-rose-400"></i></div><h3 class="text-lg font-semibold text-rose-700 dark:text-rose-300 mb-1">Access Denied</h3><p class="text-sm text-rose-600 dark:text-rose-400 mb-4">Cross-institution access denied by policy.</p><button onclick="go('instruments')" class="px-4 py-2 rounded-lg bg-rose-600 text-white text-sm font-medium">← Back</button></div>`;
+  const tabs=[{key:'verification',label:'3-State Verification',icon:'shield-check'},{key:'overview',label:'Overview',icon:'eye'},{key:'findings',label:'Findings',icon:'alert-triangle',badge:findingsFor(id).filter(f=>f.review_status==='pending').length},{key:'documents',label:'Documents',icon:'file-text',badge:docsFor(id).length},{key:'release',label:'Release',icon:'check-circle-2'},{key:'timeline',label:'Timeline',icon:'clock'}];
+  const d=i.maturity_date?daysFrom(i.maturity_date):null;
+  const isInst=state.user.role==='institution';
+  const vstate=bankVerifFor(id).some(b=>b.status==='verified')?'verified':docsFor(id).length>0?'extracted':'submitted';
+  return `<div class="space-y-5"><button onclick="go('instruments')" class="inline-flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6"><div class="flex items-start justify-between flex-wrap gap-4 mb-5"><div class="flex-1 min-w-0"><div class="flex items-center gap-3 flex-wrap mb-1"><h2 class="text-2xl font-bold font-mono tracking-tight">${esc(i.reference)}</h2>${statusPill(i.lifecycle_status)}${i.linked_instrument_id?`<button onclick="go('instrument-detail',${i.linked_instrument_id})" class="inline-flex items-center gap-1 text-xs text-brand-600 bg-brand-50 dark:bg-brand-950/50 px-2 py-1 rounded-full hover:bg-brand-100"><i data-lucide="link-2" class="w-3 h-3"></i> Replaces #${i.linked_instrument_id}</button>`:''}</div><p class="text-sm text-slate-500">${esc(getInst(i.institution_id)?.name)} · ${esc(i.bank)}</p></div><div class="flex gap-2">${isInst&&i.lifecycle_status==='active'?`<button onclick="go('replace',${id})" class="btn-press inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm hover:bg-slate-50"><i data-lucide="repeat" class="w-3.5 h-3.5"></i> Replace</button>`:''}<button onclick="window.print()" class="btn-press inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm hover:bg-slate-200"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Print</button></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4"><div><div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Amount</div><div class="text-lg font-mono font-bold">${fmtMoney(i.amount)}</div></div><div><div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Issued</div><div class="text-sm font-medium">${fmtDate(i.issue_date)}</div></div><div><div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Maturity</div><div class="text-sm font-medium">${fmtDate(i.maturity_date)}</div>${d!==null&&i.lifecycle_status==='active'?`<div class="text-[10px] ${d<0?'text-rose-500':d<=30?'text-amber-500':'text-slate-400'}">${d<0?`${-d}d overdue`:`${d} days`}</div>`:''}</div><div><div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Verification</div>${verificationBadge(vstate)}</div></div></div><div class="border-b border-slate-200 dark:border-slate-800 flex gap-1 overflow-x-auto">${tabs.map(t=>`<button onclick="state.tab='${t.key}';render();window.scrollTo({top:0,behavior:'smooth'})" class="relative px-4 py-2.5 text-sm font-medium whitespace-nowrap transition ${state.tab===t.key?'text-brand-600 dark:text-brand-400 border-b-2 border-brand-600 dark:border-brand-400':'text-slate-600 dark:text-slate-400 hover:text-slate-900'}"><span class="flex items-center gap-1.5"><i data-lucide="${t.icon}" class="w-3.5 h-3.5"></i> ${t.label}${t.badge?`<span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 rounded font-mono">${t.badge}</span>`:''}</span></button>`).join('')}</div><div class="animate-fade-in">${renderDetailTab(i)}</div></div>`;
+}
+function renderDetailTab(i){
+  switch(state.tab){
+    case 'overview': return renderOverviewTab(i);
+    case 'findings': return renderFindingsTab(i);
+    case 'documents': return renderDocumentsTab(i);
+    case 'release': return renderReleaseTab(i);
+    case 'timeline': return renderTimelineTab(i);
+    default: return renderVerificationTab(i);
+  }
+}
+function renderVerificationTab(i){
+  const fields=['reference','amount','issue_date','maturity_date'];
+  const canVerify=['scrutiny','approver','admin'].includes(state.user.role);
+  return `<div class="space-y-4"><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6"><h3 class="font-semibold mb-1 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-brand-500"></i> 3-State Field Verification</h3><p class="text-sm text-slate-500 mb-5">Each field progresses through three evidence states. No field is declared "verified" until an authorized source confirms it.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6"><div class="border border-slate-200 dark:border-slate-700 rounded-lg p-3"><div class="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-500 mb-1"><i data-lucide="user-check" class="w-3 h-3"></i> State 1</div><div class="font-medium text-sm">Submitted</div><div class="text-[10px] text-slate-500 mt-0.5">Institution declares value</div></div><div class="border border-amber-200 dark:border-amber-900 bg-amber-50/30 dark:bg-amber-950/20 rounded-lg p-3"><div class="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-amber-600 mb-1"><i data-lucide="scan-text" class="w-3 h-3"></i> State 2</div><div class="font-medium text-sm">OCR Extracted</div><div class="text-[10px] text-slate-500 mt-0.5">Machine-extracted</div></div><div class="border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-lg p-3"><div class="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-emerald-600 mb-1"><i data-lucide="shield-check" class="w-3 h-3"></i> State 3</div><div class="font-medium text-sm">Independently Verified</div><div class="text-[10px] text-slate-500 mt-0.5">Bank confirms</div></div></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800"><tr class="text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider"><th class="py-2 px-3">Field</th><th class="py-2 px-3">Submitted</th><th class="py-2 px-3">OCR Extracted</th><th class="py-2 px-3">Verification</th><th class="py-2 px-3">Evidence</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">${fields.map(f=>{const s1=verificationState(i.id,f);const ext=docsFor(i.id).flatMap(d=>extractedFor(d.id)).find(e=>e.field_name===f);const submittedVal={reference:i.reference,amount:String(i.amount),issue_date:toDDMMYYYY(i.issue_date),maturity_date:toDDMMYYYY(i.maturity_date)}[f];const bv=bankVerifFor(i.id).find(b=>b.status==='verified');return `<tr><td class="py-2.5 px-3 font-mono text-xs font-medium">${esc(f)}</td><td class="py-2.5 px-3 font-mono text-xs">${esc(submittedVal||'—')}</td><td class="py-2.5 px-3 font-mono text-xs">${ext?`<div>${esc(ext.extracted_value)}</div><div class="mt-0.5">${confidenceBar(ext.confidence)}</div>`:'<span class="text-slate-400">—</span>'}</td><td class="py-2.5 px-3">${verificationBadge(s1)}</td><td class="py-2.5 px-3 text-[10px] text-slate-500 font-mono">${s1==='verified'?esc(bv?.evidence_ref||'BV'):'—'}</td></tr>`;}).join('')}</tbody></table></div></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6"><div class="flex items-center justify-between mb-3 flex-wrap gap-2"><h3 class="font-semibold flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i> Bank Verification Records</h3>${canVerify?`<button onclick="runBankVerification(${i.id})" class="btn-press px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium flex items-center gap-1.5"><i data-lucide="play" class="w-3 h-3"></i> Run Verification</button>`:''}</div>${bankVerifFor(i.id).length===0?'<p class="text-sm text-slate-500">No bank verifications performed yet.</p>':`<div class="space-y-2">${bankVerifFor(i.id).map(b=>`<div class="border border-slate-200 dark:border-slate-800 rounded-lg p-3"><div class="flex items-center justify-between mb-1 flex-wrap gap-2"><div class="flex items-center gap-2 flex-wrap"><span class="font-mono text-xs">${esc(b.reference)}</span>${statusPill(b.status)}<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-700 font-medium">SIMULATED</span></div><span class="text-xs text-slate-500">${timeAgo(b.verified_at)}</span></div><div class="text-xs text-slate-600 dark:text-slate-400">${esc(b.notes)}</div>${b.evidence_ref?`<div class="text-[10px] font-mono text-slate-500 mt-1">Evidence: ${esc(b.evidence_ref)}</div>`:''}</div>`).join('')}</div>`}</div></div>`;
+}
+function renderOverviewTab(i){
+  const fs=findingsFor(i.id),docs=docsFor(i.id),rc=releaseCaseFor(i.id),evs=eventsFor(i.id).slice(0,4);
+  return `<div class="grid lg:grid-cols-3 gap-4"><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5"><div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">At a glance</div><div class="space-y-3"><div class="flex justify-between text-sm"><span class="text-slate-500">Documents</span><span class="font-mono font-medium">${docs.length}</span></div><div class="flex justify-between text-sm"><span class="text-slate-500">Pending findings</span><span class="font-mono font-medium">${fs.filter(f=>f.review_status==='pending').length}</span></div><div class="flex justify-between text-sm"><span class="text-slate-500">Bank verifications</span><span class="font-mono font-medium">${bankVerifFor(i.id).length}</span></div><div class="flex justify-between text-sm"><span class="text-slate-500">Release case</span><span>${rc?statusPill(rc.status):'<span class="text-slate-400 text-xs">Not started</span>'}</span></div></div></div><div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5"><div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Recent lifecycle events</div>${evs.length===0?'<p class="text-sm text-slate-500">No events yet</p>':`<div class="space-y-3">${evs.map(e=>`<div class="flex items-start gap-3"><div class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0"><i data-lucide="activity" class="w-3.5 h-3.5 text-slate-600"></i></div><div class="flex-1 min-w-0"><div class="text-sm font-medium capitalize">${esc(e.event_type.replace('_',' '))}</div><div class="text-xs text-slate-500">${esc(e.reason||'')}</div></div><div class="text-[10px] text-slate-400 whitespace-nowrap">${timeAgo(e.event_date)}</div></div>`).join('')}</div>`}</div></div>`;
+}
+function renderFindingsTab(i){
+  const fs=findingsFor(i.id);
+  const isScrut=['scrutiny','approver','admin'].includes(state.user.role);
+  if(fs.length===0) return `<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">${emptyState('check-circle-2','No discrepancies','All extracted fields match submitted values.')}</div>`;
+  return `<div class="space-y-3">${fs.map(f=>{const sev=f.severity==='high'?'rose':f.severity==='medium'?'amber':'slate';const bgClass=f.review_status==='pending'?(sev==='rose'?'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900':'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900'):'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800';return `<div class="rounded-xl border shadow-sm p-5 ${bgClass}"><div class="flex items-start justify-between gap-3 mb-4 flex-wrap"><div class="flex items-center gap-2 flex-wrap"><span class="font-semibold">${esc(f.finding_type.toUpperCase())}</span><span class="text-xs font-mono text-slate-500">${esc(f.field_name)}</span>${statusPill(f.review_status)}${pill(f.severity+' severity',sev)}</div></div><div class="grid md:grid-cols-2 gap-3 mb-4"><div class="rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3"><div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> Submitted</div><div class="font-mono text-sm font-semibold">${esc(f.submitted_value)}</div></div><div class="rounded-lg bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-900 p-3"><div class="text-[10px] font-semibold text-rose-600 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="scan-text" class="w-3 h-3"></i> Extracted</div><div class="font-mono text-sm font-semibold text-rose-700 dark:text-rose-300">${esc(f.extracted_value)}</div></div></div>${(isScrut||state.user.role==='institution')&&f.review_status==='pending'?`<div class="flex gap-2 flex-wrap pt-3 border-t border-slate-200 dark:border-slate-800">${isScrut?`<button onclick="promptReview(${f.id},'verified')" class="btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium"><i data-lucide="check" class="w-3 h-3"></i> Mark Verified</button><button onclick="promptReview(${f.id},'accepted_correction')" class="btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium"><i data-lucide="pen" class="w-3 h-3"></i> Accept Correction</button><button onclick="promptReview(${f.id},'rejected')" class="btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 text-xs font-medium"><i data-lucide="x" class="w-3 h-3"></i> Reject</button>`:''}</div>`:''}</div>`;}).join('')}</div>`;
+}
+function renderDocumentsTab(i){
+  const docs=docsFor(i.id);
+  if(docs.length===0) return `<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">${emptyState('file-x','No documents','No files uploaded.')}</div>`;
+  return `<div class="space-y-3">${docs.map(d=>{const ext=extractedFor(d.id);const meta=d.metadata||{};const tamper=meta.tamperFlags||[];return `<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"><div class="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><i data-lucide="file-image" class="w-4 h-4 text-slate-600"></i></div><div><div class="font-medium text-sm">${esc(d.filename)} <span class="text-xs text-slate-400">v${d.version}</span></div><div class="text-xs text-slate-500">Uploaded ${timeAgo(d.uploaded_at)}</div></div></div><div class="text-right"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">SHA-256</div><div class="font-mono text-[10px] text-slate-500">${esc((d.checksum||'').slice(0,16))}…</div></div></div><div class="px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50"><div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1"><i data-lucide="microscope" class="w-3 h-3"></i> Document Forensics</div><div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs"><div><div class="text-slate-500">MIME</div><div class="font-mono font-medium">${esc(meta.mime||'—')}</div></div><div><div class="text-slate-500">Pages</div><div class="font-mono font-medium">${esc(String(meta.pages||'—'))}</div></div><div><div class="text-slate-500">Size</div><div class="font-mono font-medium">${meta.size?(meta.size/1024).toFixed(0)+' KB':'—'}</div></div><div><div class="text-slate-500">Tamper flags</div><div class="font-medium ${tamper.length>0?'text-amber-600':'text-emerald-600'}">${tamper.length>0?tamper.length+' flagged':'None'}</div></div></div>${meta.exif?`<div class="mt-2 text-[10px] text-slate-500">EXIF: ${esc(meta.exif)}</div>`:''}${tamper.length>0?`<div class="mt-2 space-y-1">${tamper.map(t=>`<div class="text-[10px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 px-2 py-1 rounded flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i>${esc(t)}</div>`).join('')}</div>`:''}</div>${ext.length===0?'<div class="px-5 py-4 text-sm text-slate-500">No fields extracted.</div>':`<div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800"><tr class="text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider"><th class="py-2 px-5">Field</th><th class="py-2 px-3">Value</th><th class="py-2 px-3">Confidence</th><th class="py-2 px-5">Source</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">${ext.map(e=>`<tr><td class="py-2.5 px-5 font-mono text-xs">${esc(e.field_name)}</td><td class="py-2.5 px-3 font-mono text-xs font-medium">${esc(e.extracted_value)}</td><td class="py-2.5 px-3">${confidenceBar(e.confidence)}</td><td class="py-2.5 px-5 text-xs text-slate-500">${esc(e.source_region||'—')}</td></tr>`).join('')}</tbody></table></div>`}</div>`;}).join('')}</div>`;
+}
+function renderReleaseTab(i){
+  const rc=releaseCaseFor(i.id);
+  const isInst=state.user.role==='institution';
+  const isScrut=['scrutiny','approver','admin'].includes(state.user.role);
+  const isApprover=['approver','admin'].includes(state.user.role);
+  if(!rc){if(i.lifecycle_status==='active'&&isInst) return `<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">${emptyState('unlock','Release not started','Start the release workflow.',`<button onclick="startRelease(${i.id})" class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium"><i data-lucide="plus" class="w-4 h-4"></i> Request Release</button>`)}</div>`;return `<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">${emptyState('lock','No release case','No active release request.')}</div>`;}
+  const cls=clearancesFor(rc.id);
+  const satisfied=cls.filter(c=>c.status==='satisfied').length;
+  const pct=Math.round((satisfied/cls.length)*100);
+  const reqMap=Object.fromEntries(DB.policy.requirements.map(r=>[r.code,r]));
+  return `<div class="space-y-4"><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6"><div class="flex items-center justify-between mb-4 flex-wrap gap-3"><div><div class="flex items-center gap-2 mb-1"><h3 class="font-semibold">Release Case #${rc.id}</h3>${statusPill(rc.status)}</div><p class="text-xs text-slate-500">Requested ${timeAgo(rc.requested_at)} by ${esc(getUser(rc.requested_by)?.full_name||'—')}</p></div><div class="flex items-center gap-3">${progressRing(pct,{size:56,thickness:5,color:pct===100?'#10b981':'#6366f1'})}<div><div class="text-xs text-slate-500">Progress</div><div class="text-sm font-semibold">${satisfied} of ${cls.length}</div></div></div></div><div class="space-y-2">${cls.map(c=>{const req=reqMap[c.requirement_code]||{label:c.requirement_code,description:''};const done=c.status==='satisfied';return `<div class="flex items-start gap-3 p-3 rounded-lg ${done?'bg-emerald-50/50 dark:bg-emerald-950/20':'bg-slate-50 dark:bg-slate-800/50'} border border-slate-200 dark:border-slate-800"><div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${done?'bg-emerald-500 text-white':'bg-slate-200 dark:bg-slate-700 text-slate-500'}"><i data-lucide="${done?'check':'circle-dashed'}" class="w-3.5 h-3.5"></i></div><div class="flex-1 min-w-0"><div class="text-sm font-medium">${esc(req.label)}</div><div class="text-xs text-slate-500">${esc(req.description)}</div>${done?`<div class="text-xs text-emerald-700 mt-1 flex items-center gap-1"><i data-lucide="file-check" class="w-3 h-3"></i> ${esc(c.evidence_reference)}</div>`:''}</div>${!done&&isScrut?`<button onclick="promptSatisfy(${rc.id},'${esc(c.requirement_code)}')" class="btn-press text-xs px-2.5 py-1 rounded bg-brand-600 hover:bg-brand-700 text-white font-medium flex-shrink-0">Mark satisfied</button>`:''}</div>`;}).join('')}</div>${isApprover&&rc.status==='submitted'?`<div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3"><div class="text-xs text-slate-500">${pct===100?'✓ All clearances satisfied':`⚠️ ${cls.length-satisfied} pending`}</div><div class="flex gap-2"><button onclick="promptDecide(${rc.id},'reject')" class="btn-press px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 text-sm font-medium hover:bg-slate-50">Reject</button><button onclick="promptDecide(${rc.id},'approve')" class="btn-press px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium ${pct<100?'opacity-50 cursor-not-allowed':''}" ${pct<100?'disabled':''}>Approve Release</button></div></div>`:''}${rc.status==='approved'?`<div class="mt-4 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900"><div class="flex items-center gap-2 text-emerald-700 text-sm font-medium"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Released ${rc.decision_reason?`<span class="font-normal">— ${esc(rc.decision_reason)}</span>`:''}</div><div class="text-xs text-emerald-600 mt-1">by ${esc(getUser(rc.decided_by)?.full_name||'—')} · ${timeAgo(rc.decided_at)}</div></div>`:''}</div></div>`;
+}
+function renderTimelineTab(i){
+  const evs=eventsFor(i.id);
+  return `<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6"><div class="relative"><div class="absolute left-4 top-2 bottom-2 w-0.5 bg-slate-200 dark:bg-slate-800"></div><div class="space-y-5">${evs.map(e=>{const actor=getUser(e.actor_id);return `<div class="relative pl-12"><div class="absolute left-0 top-0 w-8 h-8 rounded-full bg-white dark:bg-slate-900 border-2 border-brand-500 flex items-center justify-center"><i data-lucide="activity" class="w-3.5 h-3.5 text-brand-600"></i></div><div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3"><div class="flex items-center justify-between gap-2 mb-1"><div class="font-medium text-sm capitalize">${esc(e.event_type.replace('_',' '))}</div><div class="text-xs text-slate-500 whitespace-nowrap">${fmtTime(e.event_date)}</div></div>${e.reason?`<div class="text-xs text-slate-600 dark:text-slate-400">${esc(e.reason)}</div>`:''}${e.linked_instrument_id?`<div class="text-xs mt-1"><button onclick="go('instrument-detail',${e.linked_instrument_id})" class="text-brand-600 hover:underline inline-flex items-center gap-1"><i data-lucide="link-2" class="w-3 h-3"></i> Linked to #${e.linked_instrument_id}</button></div>`:''}${actor?`<div class="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1.5">${avatar(actor,'sm')} ${esc(actor.full_name)}</div>`:''}</div></div>`;}).join('')}</div></div></div>`;
+}
+
+/* ═══ ACTION MODALS ═══ */
+function promptReview(fid,decision){const labels={verified:'Verify',accepted_correction:'Accept Correction',rejected:'Reject'};openModal({title:`${labels[decision]} finding`,description:'Record your decision — logged in audit trail.',icon:decision==='rejected'?'x-circle':'check-circle-2',body:`<div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Reason</label><textarea id="reviewReason" rows="3" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none resize-none"></textarea></div>`,actions:`<button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button onclick="submitReview(${fid},'${decision}')" class="btn-press px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Confirm</button>`});}
+async function submitReview(fid,decision){const reason=document.getElementById('reviewReason')?.value||'';closeModal();await reviewFinding(fid,decision,reason);toast(`Finding ${decision.replace('_',' ')}`,'ok');render();}
+function startRelease(iid){openModal({title:'Request release',description:'Creates a release case with required clearances.',icon:'unlock',body:`<ul class="space-y-2 text-sm">${DB.policy.requirements.map(r=>`<li class="flex items-start gap-2"><i data-lucide="circle" class="w-3 h-3 text-slate-400 mt-1"></i><div><div class="font-medium">${esc(r.label)}</div><div class="text-xs text-slate-500">${esc(r.description)}</div></div></li>`).join('')}</ul>`,actions:`<button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button onclick="confirmRelease(${iid})" class="btn-press px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Create Release Case</button>`});}
+async function confirmRelease(iid){closeModal();const rc=await createRelease(iid);if(rc){toast('Release case created','ok');state.tab='release';render();}}
+function promptSatisfy(cid,code){const req=DB.policy.requirements.find(r=>r.code===code);openModal({title:`Satisfy: ${req?.label||code}`,description:'Provide evidence reference.',icon:'check-circle-2',body:`<div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Evidence reference</label><input id="satisfyEvidence" placeholder="e.g. NDC/2024/001" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none font-mono"><p class="text-xs text-slate-500 mt-2">Recorded with your user ID and timestamp.</p></div>`,actions:`<button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button onclick="submitSatisfy(${cid},'${esc(code)}')" class="btn-press px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium">Mark Satisfied</button>`});setTimeout(()=>document.getElementById('satisfyEvidence')?.focus(),60);}
+async function submitSatisfy(cid,code){const ev=document.getElementById('satisfyEvidence')?.value.trim();if(!ev){toast('Evidence required','error');return;}closeModal();await satisfyClearance(cid,code,ev);toast('Clearance satisfied','ok');render();}
+function promptDecide(cid,decision){openModal({title:decision==='approve'?'Approve release':'Reject release',description:decision==='approve'?'Marks the instrument as released.':'Rejects the release request.',icon:decision==='approve'?'check-circle-2':'x-circle',body:`<div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Decision reason</label><textarea id="decideReason" rows="3" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none resize-none"></textarea></div>`,actions:`<button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button onclick="submitDecide(${cid},'${decision}')" class="btn-press px-4 py-2 rounded-lg ${decision==='approve'?'bg-emerald-600 hover:bg-emerald-700':'bg-rose-600 hover:bg-rose-700'} text-white text-sm font-medium">Confirm</button>`});}
+async function submitDecide(cid,decision){const reason=document.getElementById('decideReason')?.value||'';closeModal();const res=await decideRelease(cid,decision,reason);if(res.ok){toast(`Release ${decision}d`,'ok');render();}else toast(res.msg,'error');}
+
+/* ═══ AUDIT ═══ */
+function viewAudit(){
+  const events=[...DB.audit_events].reverse();
+  return `<div class="space-y-5"><div class="flex items-center justify-between flex-wrap gap-3"><div><h2 class="text-2xl font-bold tracking-tight">Audit Trail</h2><p class="text-sm text-slate-500 mt-1">Immutable hash-chained log · ${events.length} events</p></div><div class="flex gap-2"><button onclick="window.print()" class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm font-medium"><i data-lucide="printer" class="w-4 h-4"></i> Print</button><button onclick="runAuditVerify()" class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium"><i data-lucide="shield-check" class="w-4 h-4"></i> Verify Integrity</button></div></div><div id="verifyResult"></div><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800"><tr class="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider"><th class="py-3 px-4">ID</th><th class="py-3 px-4">Timestamp</th><th class="py-3 px-4">Actor</th><th class="py-3 px-4">Action</th><th class="py-3 px-4">Entity</th><th class="py-3 px-4">Reason</th><th class="py-3 px-4">Hash</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">${events.map(e=>`<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-400 font-mono text-xs">${e.id}</td><td class="py-2.5 px-4 text-slate-500 text-xs whitespace-nowrap">${fmtTime(e.timestamp)}</td><td class="py-2.5 px-4 text-xs">${esc(e.actor_role||'—')}</td><td class="py-2.5 px-4 text-xs font-mono text-brand-600 font-medium">${esc(e.action)}</td><td class="py-2.5 px-4 text-xs">${esc(e.entity)}#${e.entity_id}</td><td class="py-2.5 px-4 text-xs text-slate-500 max-w-[200px] truncate">${esc(e.reason||'')}</td><td class="py-2.5 px-4 font-mono text-[10px] text-slate-400">${esc((e.hash||'').slice(0,12))}…</td></tr>`).join('')}</tbody></table></div></div></div>`;
+}
+async function runAuditVerify(){
+  const el=document.getElementById('verifyResult'); if(!el) return;
+  el.innerHTML=`<div class="bg-slate-100 dark:bg-slate-800 rounded-xl p-4 flex items-center gap-3 text-sm"><div class="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full spin"></div>Verifying ${DB.audit_events.length} events…</div>`;
+  const r=await verifyAudit();
+  el.innerHTML=r.valid?`<div class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-4 flex items-start gap-3 animate-fade-in"><div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center flex-shrink-0"><i data-lucide="check" class="w-5 h-5"></i></div><div><div class="font-semibold text-emerald-800 dark:text-emerald-300">Audit chain valid</div><div class="text-sm text-emerald-700 dark:text-emerald-400 mt-0.5">${r.total} events verified — no tampering</div></div></div>`:`<div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl p-4 flex items-start gap-3"><div class="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center flex-shrink-0"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div><div><div class="font-semibold text-rose-800 dark:text-rose-300">Chain broken</div><div class="text-sm text-rose-700 mt-0.5">Tampering at #${r.broken_at}</div></div></div>`;
+  refreshIcons();
+}
+
+/* ═══ NOTIFICATIONS ═══ */
+function openNotifications(){
+  const ns=DB.notifications.filter(n=>n.user_id===state.user.id).sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const unread=ns.filter(n=>!n.read).length;
+  openModal({title:'Notification Center',description:`${unread} unread · Delivery channels preview`,icon:'bell',size:'xl',
+    body:`<div class="space-y-4"><div class="grid grid-cols-3 gap-2"><div class="bg-brand-50 dark:bg-brand-950/30 rounded-lg p-3 text-center"><div class="text-2xl font-bold font-mono text-brand-600">${ns.length}</div><div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">In-app</div></div><div class="bg-violet-50 dark:bg-violet-950/30 rounded-lg p-3 text-center"><div class="text-2xl font-bold font-mono text-violet-600">${ns.length}</div><div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Email</div></div><div class="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3 text-center"><div class="text-2xl font-bold font-mono text-emerald-600">${Math.min(ns.length,3)}</div><div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">SMS</div></div></div><div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><div>Email/SMS delivery simulated. Production: SMTP + SMS gateway.</div></div><div class="space-y-3">${ns.length===0?'<div class="text-sm text-slate-500 text-center py-8">No notifications</div>':ns.map((n,i)=>`<div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden"><div class="px-4 py-3 ${!n.read?'bg-brand-50 dark:bg-brand-950/20':'bg-white dark:bg-slate-900'} flex items-start gap-2"><i data-lucide="${n.type==='maturity'?'clock':n.type==='finding'?'alert-triangle':'bell'}" class="w-4 h-4 ${n.type==='maturity'?'text-amber-500':n.type==='finding'?'text-rose-500':'text-brand-500'} mt-0.5 flex-shrink-0"></i><div class="flex-1 min-w-0"><div class="text-sm font-medium">${esc(n.title)}</div><div class="text-xs text-slate-500 mt-0.5">${esc(n.body)}</div><div class="text-[10px] text-slate-400 mt-1">${timeAgo(n.created_at)}</div></div></div>${i===0?`<div class="px-4 py-3 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800"><div class="text-[10px] font-semibold uppercase tracking-wider text-violet-600 mb-2 flex items-center gap-1"><i data-lucide="mail" class="w-3 h-3"></i> Email Preview</div><div class="bg-white dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700 text-xs"><div class="text-slate-500 mb-1">From: <b>notifications@fdr-sentinel.gov.in</b></div><div class="text-slate-500 mb-2">Subject: <b>${esc(n.title)}</b></div><div class="border-t border-slate-100 dark:border-slate-800 pt-2 text-slate-700 dark:text-slate-300">${esc(n.body)}</div></div><div class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 mt-3 mb-2 flex items-center gap-1"><i data-lucide="message-square" class="w-3 h-3"></i> SMS Preview</div><div class="bg-slate-800 text-white rounded-lg p-3 text-xs font-mono max-w-md"><div class="text-[10px] text-slate-400 mb-1">+91 98XXX XXXXX · ${fmtTime(n.created_at)}</div><div>FDR Sentinel: ${esc(n.title)}. Action required.</div></div></div>`:''}</div>`).join('')}</div></div>`,
+    actions:`<button onclick="markAllRead();closeModal()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100">Mark all read</button><button onclick="closeModal()" class="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium">Close</button>`});
+}
+function markAllRead(){DB.notifications.filter(n=>n.user_id===state.user.id).forEach(n=>n.read=true);save();render();}
+
+/* ═══ CREATE ═══ */
+function viewCreate(){
+  const institutions=state.user.role==='admin'?DB.institutions:DB.institutions.filter(i=>i.id===state.user.institution_id);
+  return `<div class="max-w-3xl mx-auto space-y-5"><button onclick="go('instruments')" class="inline-flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"><div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between flex-wrap gap-3"><div><h2 class="text-lg font-bold">New FDR Submission</h2><p class="text-sm text-slate-500 mt-0.5">Register a security deposit. OCR extracts fields.</p></div><button type="button" onclick="fillDemoData()" class="btn-press inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300 text-xs font-medium"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Fill demo</button></div><form id="createForm" class="p-6 space-y-5"><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Institution</label><select name="institution_id" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required><option value="">Select…</option>${institutions.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select></div><div class="grid grid-cols-2 gap-4"><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">FDR Reference</label><input name="reference" placeholder="FDR-2025-001" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none" required></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Bank</label><input name="bank" placeholder="SBI" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Amount (₹)</label><input name="amount" type="number" placeholder="500000" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none" required></div><div class="grid grid-cols-2 gap-4"><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Issue Date</label><input name="issue_date" type="date" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Maturity Date</label><input name="maturity_date" type="date" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div></div><label for="fileInput" class="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl py-8 hover:border-brand-400 cursor-pointer transition"><i data-lucide="upload-cloud" class="w-8 h-8 text-slate-400"></i><div class="text-sm font-medium">Drop file or click to upload</div><div class="text-xs text-slate-500">PNG, JPG · OCR auto-extracts</div><input id="fileInput" name="file" type="file" accept="image/*" class="hidden" required></label><div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 flex items-center justify-between"><div><div class="text-xs font-semibold">Demo tip</div><div class="text-xs text-slate-500">No image? Generate one</div></div><button type="button" onclick="generateSampleFDR()" class="btn-press px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium inline-flex items-center gap-1.5"><i data-lucide="image" class="w-3 h-3"></i> Generate sample FDR</button></div><div id="filePreview" class="hidden px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm flex items-center justify-between"><span id="fileName" class="font-mono text-xs"></span><button type="button" onclick="document.getElementById('fileInput').value='';document.getElementById('filePreview').classList.add('hidden')" class="text-xs text-slate-500 hover:text-rose-500">Remove</button></div><div id="ocrStatus" class="hidden text-sm px-3 py-2 rounded-lg"></div><div id="extractedSection" class="hidden pt-2"><div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><i data-lucide="scan-text" class="w-3.5 h-3.5"></i> Extracted fields (evidence)<span class="ml-auto text-[10px] font-normal text-slate-400 normal-case">Edit to demonstrate discrepancies</span></div><div class="grid grid-cols-2 gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800"><div><label class="text-[10px] font-semibold text-slate-500 uppercase">Reference</label><input name="ext_reference" class="w-full mt-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none"></div><div><label class="text-[10px] font-semibold text-slate-500 uppercase">Amount</label><input name="ext_amount" class="w-full mt-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none"></div><div><label class="text-[10px] font-semibold text-slate-500 uppercase">Issue (DD/MM/YYYY)</label><input name="ext_issue_date" class="w-full mt-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none"></div><div><label class="text-[10px] font-semibold text-slate-500 uppercase">Maturity (DD/MM/YYYY)</label><input name="ext_maturity_date" class="w-full mt-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none"></div></div></div><div class="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800"><button type="button" onclick="go('instruments')" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-lg shadow-brand-500/20"><i data-lucide="check" class="w-4 h-4"></i> Submit</button></div></form></div></div>`;
+}
+function fillDemoData(){
+  const form=document.getElementById('createForm'); if(!form) return;
+  form.querySelector('[name=reference]').value='FDR-2025-'+Math.floor(100+Math.random()*900);
+  form.querySelector('[name=bank]').value='SBI';
+  form.querySelector('[name=amount]').value='500000';
+  form.querySelector('[name=issue_date]').value=today();
+  form.querySelector('[name=maturity_date]').value=addDays(new Date(),365).toISOString().slice(0,10);
+  if(state.user.role==='institution') form.querySelector('[name=institution_id]').value=state.user.institution_id;
+  toast('Form filled with demo data','ok');
+}
+function generateSampleFDR(){
+  const canvas=document.createElement('canvas');
+  canvas.width=800; canvas.height=600;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#f8fafc'; ctx.fillRect(0,0,800,600);
+  ctx.strokeStyle='#1e40af'; ctx.lineWidth=4; ctx.strokeRect(20,20,760,560);
+  ctx.fillStyle='#1e40af'; ctx.font='bold 32px Georgia'; ctx.textAlign='center';
+  ctx.fillText('STATE BANK OF INDIA',400,90);
+  ctx.font='italic 16px Georgia'; ctx.fillStyle='#475569'; ctx.fillText('Fixed Deposit Receipt',400,120);
+  ctx.textAlign='left'; ctx.fillStyle='#0f172a'; ctx.font='18px Georgia';
+  ctx.fillText('FDR Reference:  FDR-2025-789',80,200);
+  ctx.fillText('Amount:  Rs. 5,00,000',80,250);
+  ctx.fillText('Issue Date:  01/04/2025',80,300);
+  ctx.fillText('Maturity Date:  01/04/2026',80,350);
+  ctx.fillText('Institution:  Sunrise Institute of Technology',80,400);
+  ctx.fillStyle='#64748b'; ctx.font='14px Georgia';
+  ctx.fillText('This is a computer-generated sample for demonstration purposes.',80,500);
+  const link=document.createElement('a');
+  link.download='FDR-2025-789-sample.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+  toast('Sample FDR downloaded','ok',{desc:'Now upload it in the form above'});
+}
+function attachCreateForm(){
+  const form=document.getElementById('createForm'); if(!form) return;
+  const fileInput=document.getElementById('fileInput'),ocrStatus=document.getElementById('ocrStatus'),extSection=document.getElementById('extractedSection'),filePreview=document.getElementById('filePreview'),fileName=document.getElementById('fileName');
+  fileInput.addEventListener('change',async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    filePreview.classList.remove('hidden'); fileName.textContent=`${file.name} · ${(file.size/1024).toFixed(0)} KB`;
+    extSection.classList.remove('hidden');
+    if(typeof Tesseract==='undefined'||!Tesseract.createWorker){ocrStatus.className='text-sm px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600';ocrStatus.innerHTML='ℹ️ OCR loading…';ocrStatus.classList.remove('hidden');return;}
+    ocrStatus.className='text-sm px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-950/30 text-brand-700 border border-brand-200';ocrStatus.innerHTML='<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 border-2 border-brand-500 border-t-transparent rounded-full spin"></div>Extracting…</div>';ocrStatus.classList.remove('hidden');
+    try{
+      const res=await extractFromImage(file);
+      if(res.fields.reference) form.querySelector('[name=ext_reference]').value=res.fields.reference;
+      if(res.fields.amount) form.querySelector('[name=ext_amount]').value=res.fields.amount;
+      if(res.fields.issue_date) form.querySelector('[name=ext_issue_date]').value=res.fields.issue_date;
+      if(res.fields.maturity_date) form.querySelector('[name=ext_maturity_date]').value=res.fields.maturity_date;
+      ocrStatus.className='text-sm px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 border border-emerald-200';
+      ocrStatus.innerHTML=`<div class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4"></i> OCR complete — ${Object.keys(res.fields).length} field(s)</div>`;
+      refreshIcons();
+    }catch(err){ocrStatus.className='text-sm px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-700';ocrStatus.innerHTML='⚠️ OCR unavailable — enter manually.';}
+  });
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const fd=new FormData(form),file=fileInput.files[0];
+    if(!file){toast('Please upload a document','error');return;}
+    const extracted={reference:fd.get('ext_reference')||null,amount:fd.get('ext_amount')||null,issue_date:fd.get('ext_issue_date')||null,maturity_date:fd.get('ext_maturity_date')||null};
+    Object.keys(extracted).forEach(k=>!extracted[k]&&delete extracted[k]);
+    const checksum=await sha256(file.name+file.size+file.lastModified);
+    const inst=await createInstrument({institution_id:fd.get('institution_id'),reference:fd.get('reference'),bank:fd.get('bank'),amount:fd.get('amount'),issue_date:fd.get('issue_date'),maturity_date:fd.get('maturity_date'),filename:file.name,checksum,extracted});
+    toast('Submission created','ok');
+    go('instrument-detail',inst.id);
+  });
+}
+function viewReplace(id){
+  const old=getInstr(id); if(!old) return emptyState('alert-triangle','Not found','');
+  return `<div class="max-w-3xl mx-auto space-y-5"><button onclick="go('instrument-detail',${id})" class="inline-flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900"><i data-lucide="chevron-left" class="w-4 h-4"></i> Back</button><div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6"><h2 class="text-lg font-bold mb-1">Replace / Renew Instrument</h2><p class="text-sm text-slate-500 mb-5">Old record preserved. New instrument linked with full lineage.</p><div class="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 p-4 mb-5"><div class="text-[10px] font-semibold text-amber-700 uppercase mb-1">Replacing</div><div class="font-mono font-semibold">${esc(old.reference)}</div><div class="text-xs text-amber-700">${esc(old.bank)} · ${fmtMoney(old.amount)} · matures ${fmtDate(old.maturity_date)}</div></div><form id="replaceForm" class="space-y-4"><div class="grid grid-cols-2 gap-4"><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">New Reference</label><input name="reference" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none" required></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Bank</label><input name="bank" value="${esc(old.bank)}" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Amount (₹)</label><input name="amount" type="number" value="${old.amount}" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm font-mono outline-none" required></div><div class="grid grid-cols-2 gap-4"><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Issue Date</label><input name="issue_date" type="date" value="${today()}" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Maturity Date</label><input name="maturity_date" type="date" value="${addDays(new Date(),365).toISOString().slice(0,10)}" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">Reason</label><input name="reason" placeholder="Maturity reached — replaced per policy" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm outline-none" required></div><div><label class="text-xs font-medium text-slate-600 dark:text-slate-400">New Document</label><input name="file" type="file" accept="image/*" class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm" required></div><div class="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800"><button type="button" onclick="go('instrument-detail',${id})" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</button><button class="btn-press px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium">Create Replacement</button></div></form></div></div>`;
+}
+function attachReplaceForm(id){
+  const form=document.getElementById('replaceForm'); if(!form) return;
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const fd=new FormData(form),file=fd.get('file');
+    if(!file||!file.size){toast('Please upload new document','error');return;}
+    const checksum=await sha256(file.name+file.size+file.lastModified);
+    const extracted={reference:fd.get('reference'),amount:fd.get('amount'),issue_date:toDDMMYYYY(fd.get('issue_date')),maturity_date:toDDMMYYYY(fd.get('maturity_date'))};
+    const newInst=await replaceInstrument(id,{reference:fd.get('reference'),bank:fd.get('bank'),amount:fd.get('amount'),issue_date:fd.get('issue_date'),maturity_date:fd.get('maturity_date'),reason:fd.get('reason'),filename:file.name,checksum,extracted});
+    if(newInst){toast('Replacement created','ok');go('instrument-detail',newInst.id);}
+  });
+}
+
+/* ═══ KEYBOARD ═══ */
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();state.paletteOpen?closePalette():openPalette();}
+  if(e.key==='Escape'){if(state.paletteOpen) closePalette();else if(document.getElementById('modalRoot')?.innerHTML) closeModal();}
+});
+
+/* ═══ BOOT ═══ */
+async function boot(){
+  try{
+    applyTheme();
+    reload();
+    if(!DB){ DB=await seedData(); save(); }
+    else {
+      DB.bank_verifications=DB.bank_verifications||[];
+      DB.notifications=DB.notifications||[];
+      DB.documents=DB.documents||[];
+      DB.extracted_fields=DB.extracted_fields||[];
+      DB.findings=DB.findings||[];
+      DB.lifecycle_events=DB.lifecycle_events||[];
+      DB.release_cases=DB.release_cases||[];
+      DB.clearances=DB.clearances||[];
+      DB.audit_events=DB.audit_events||[];
+      DB.instruments=DB.instruments||[];
+      DB.institutions=DB.institutions||[];
+      DB.users=DB.users||[];
+      DB.policy.history=DB.policy.history||[];
+      DB.seq=DB.seq||{institutions:0,users:0,instruments:0,documents:0,extracted_fields:0,findings:0,lifecycle_events:0,release_cases:0,clearances:0,audit_events:0,bank_verifications:0,notifications:0};
+    }
+    if(restoreSession()) state.page='dashboard';
+    else state.page='login';
+    render();
+  }catch(e){
+    console.error('Boot failed:',e);
+    const app=document.getElementById('app');
+    if(app) app.innerHTML=`<div class="min-h-screen flex items-center justify-center p-6 bg-slate-50"><div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 max-w-md text-center"><div class="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center mx-auto mb-3"><i data-lucide="alert-triangle" class="w-6 h-6 text-rose-600"></i></div><h2 class="text-lg font-bold mb-1">Startup failed</h2><p class="text-sm text-rose-600 mb-4 font-mono break-all">${esc(e.message)}</p><button onclick="localStorage.clear();location.reload()" class="px-4 py-2 bg-brand-600 text-white rounded-lg font-medium">Reset & retry</button></div></div>`;
+    refreshIcons();
+  }
+}
+boot();
+</script>
+</body>
+</html>
